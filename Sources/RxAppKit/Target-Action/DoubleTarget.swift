@@ -18,7 +18,7 @@ final class DoubleClickTarget<Component: HasDoubleAction>: BaseTarget<Component>
         MainScheduler.ensureRunningOnMainThread()
         self.doubleActionCallback = doubleAction
         super.init(component, baseAction: baseAction)
-        component.doubleAction = selector
+        component.doubleAction = doubleActionSelector
     }
 
     @objc func doubleActionHandler() {
@@ -40,18 +40,23 @@ extension Reactive where Base: HasDoubleAction {
     var lazyDoubleClickObservable: Observable<Void> {
         base.rx.lazyInstanceObservable(&rx_double_click) { () -> Observable<Void> in
             Observable.create { [weak weakControl = self.base] (observer: AnyObserver<Void>) in
-                guard let control = weakControl,
-                      let target = control.target as? BaseTarget<Base>,
-                      let baseAction = target.baseActionCallback
+                guard let control = weakControl
                 else {
                     observer.on(.completed)
                     return Disposables.create()
                 }
 
                 observer.on(.next(()))
-
-                let disposable = DoubleClickTarget(control, baseAction: baseAction) { _ in
-                    observer.on(.next(()))
+                let disposable: RxTarget
+                if let target = control.target as? BaseTarget<Base>,
+                   let baseAction = target.baseActionCallback {
+                    disposable = DoubleClickTarget(control, baseAction: baseAction) { _ in
+                        observer.on(.next(()))
+                    }
+                } else {
+                    disposable = DoubleClickTarget(control, baseAction: { _ in }, doubleAction: { _ in
+                        observer.on(.next(()))
+                    })
                 }
 
                 return disposable

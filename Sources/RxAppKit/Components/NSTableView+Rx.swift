@@ -16,17 +16,12 @@ public extension Reactive where Base: NSTableView {
         RxNSTableViewDataSourceProxy.proxy(for: base)
     }
 
-    var delegate: DelegateProxy<NSTableView, NSTableViewDelegate> {
+    var delegate: RxNSTableViewDelegateProxy {
         RxNSTableViewDelegateProxy.proxy(for: base)
     }
 
     func setDelegate(_ delegate: NSTableViewDelegate) -> Disposable {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
-    }
-
-    func setDelegateAdapter(_ delegateAdapter: RxNSTableViewDelegateAdapter) {
-        let delegate: RxNSTableViewDelegateType = castOrFatalError(self.delegate.forwardToDelegate(), message: "This method only works in case one of the `rx.items(_ source: O)` methods was used.")
-        delegate.delegateAdapter = delegateAdapter
     }
 
     func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
@@ -42,12 +37,12 @@ public extension Reactive where Base: NSTableView {
         -> (_ source: Source)
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
-            let delegateSubscription = self.setDelegate(adapter)
+            self.delegate.setRequiredMethodsDelegate(adapter)
             let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak tableView = self.base] (_: RxNSTableViewDataSourceProxy, event) in
                 guard let tableView = tableView else { return }
                 adapter.tableView(tableView, observedEvent: event)
             }
-            return Disposables.create([dataSourceSubscription, delegateSubscription])
+            return Disposables.create([dataSourceSubscription])
         }
     }
 

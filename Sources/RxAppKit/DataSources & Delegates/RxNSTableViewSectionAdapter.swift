@@ -3,7 +3,7 @@ import RxSwift
 import RxCocoa
 import DifferenceKit
 
-open class RxNSTableViewSectionAdapter<Section: DifferentiableSection>: TableViewAdapter<Section.Collection.Element>, RxNSTableViewDataSourceType, RxNSTableViewDelegateType {
+open class RxNSTableViewSectionAdapter<Section: DifferentiableSection>: TableViewAdapter<Section.Collection.Element>, RxNSTableViewDataSourceType {
     public typealias Element = [Section]
 
     public typealias Item = Section.Collection.Element
