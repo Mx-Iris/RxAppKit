@@ -1,4 +1,4 @@
-import Cocoa
+import AppKit
 import RxSwift
 import RxCocoa
 
@@ -16,17 +16,18 @@ private final class NSTableViewDataSourceNotSet: NSObject, NSTableViewDataSource
 
 public class RxNSTableViewDataSourceProxy: DelegateProxy<NSTableView, NSTableViewDataSource>, DelegateProxyType {
     public private(set) weak var tableView: NSTableView?
-    
+
     public init(tableView: ParentObject) {
         self.tableView = tableView
         super.init(parentObject: tableView, delegateProxy: RxNSTableViewDataSourceProxy.self)
     }
-    
+
     public static func registerKnownImplementations() {
-        self.register { RxNSTableViewDataSourceProxy(tableView: $0) }
+        register { RxNSTableViewDataSourceProxy(tableView: $0) }
     }
+
     private weak var _requiredMethodsDataSource: NSTableViewDataSource? = nsTableViewDataSourceNotSet
-    
+
     public override func setForwardToDelegate(_ forwardToDelegate: NSTableViewDataSource?, retainDelegate: Bool) {
         _requiredMethodsDataSource = forwardToDelegate ?? nsTableViewDataSourceNotSet
         super.setForwardToDelegate(forwardToDelegate, retainDelegate: retainDelegate)

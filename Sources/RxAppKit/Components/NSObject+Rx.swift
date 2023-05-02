@@ -1,6 +1,6 @@
+import Foundation
 import RxSwift
 import RxCocoa
-import Foundation
 
 extension Reactive where Base: AnyObject {
     /**
@@ -17,5 +17,10 @@ extension Reactive where Base: AnyObject {
         objc_setAssociatedObject(self.base, key, observable, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         
         return observable
+    }
+    
+    func controlEventForNotification(_ notificationName: Notification.Name, object: AnyObject?) -> ControlEvent<Void> {
+        let source = NotificationCenter.default.rx.notification(notificationName, object: object).map { _ in }
+        return ControlEvent(events: source)
     }
 }

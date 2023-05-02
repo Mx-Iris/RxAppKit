@@ -1,4 +1,4 @@
-import Cocoa
+import AppKit
 import RxSwift
 
 /// Marks data source as `NSTableView` reactive data source enabling it to be used with one of the `bindTo` methods.
