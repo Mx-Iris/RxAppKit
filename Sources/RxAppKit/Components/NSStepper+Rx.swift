@@ -4,10 +4,10 @@ import RxCocoa
 
 public extension Reactive where Base: NSStepper {
     var doubleValue: ControlProperty<Double> {
-        return controlProperty(valuePath: \.doubleValue)
+        return controlProperty(forKeyPath: \.doubleValue)
     }
 
     var integerValue: ControlProperty<Int> {
-        return controlProperty(valuePath: \.integerValue)
+        return controlProperty(forKeyPath: \.integerValue)
     }
 }

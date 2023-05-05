@@ -35,9 +35,9 @@ public extension Reactive where Base: NSBrowser {
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
             let adapterSubscription = _delegate.setRequiredMethodsDelegate(adapter)
-            
+
             base.layoutSubtreeIfNeeded()
-            
+
             let subscription = source.asObservable()
                 .observe(on: MainScheduler())
                 .catch { error in
@@ -50,6 +50,15 @@ public extension Reactive where Base: NSBrowser {
                 .subscribe { [weak object = base] event in
                     guard let broswer = object else { return }
                     adapter.browser(broswer, observedEvent: event)
+                    switch event {
+                    case let .error(error):
+                        bindingError(error)
+                        adapterSubscription.dispose()
+                    case .completed:
+                        adapterSubscription.dispose()
+                    default:
+                        break
+                    }
                 }
 
             return Disposables.create { [weak object = base] in

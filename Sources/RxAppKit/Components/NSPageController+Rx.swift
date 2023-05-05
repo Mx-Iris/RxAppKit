@@ -2,12 +2,12 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension Reactive where Base: NSPageController {
-    public var delegate: DelegateProxy<NSPageController, NSPageControllerDelegate> {
+public extension Reactive where Base: NSPageController {
+    var delegate: DelegateProxy<NSPageController, NSPageControllerDelegate> {
         RxNSPageControllDelegateProxy.proxy(for: base)
     }
 
-    public func setDelegate(_ delegate: NSPageControllerDelegate) -> Disposable {
+    func setDelegate(_ delegate: NSPageControllerDelegate) -> Disposable {
         RxNSPageControllDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
