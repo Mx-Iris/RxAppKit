@@ -103,6 +103,11 @@ func castOrThrow<T>(_ resultType: T.Type, _ object: Any) throws -> T {
     return returnValue
 }
 
+@inline(__always)
+func castOrThrow<T>(_ resultType: T.Type, _ object: Any?) throws -> T {
+    try castOrThrow(resultType, object as Any)
+}
+
 func castOptionalOrThrow<T>(_ resultType: T.Type, _ object: AnyObject) throws -> T? {
     if NSNull().isEqual(object) {
         return nil

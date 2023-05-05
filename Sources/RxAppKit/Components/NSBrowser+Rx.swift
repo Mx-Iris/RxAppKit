@@ -1,11 +1,22 @@
 import AppKit
 import RxSwift
-import RxCocoa
 
 extension NSBrowser: HasDoubleAction {}
 
 public extension Reactive where Base: NSBrowser {
     typealias ClickedIndex = (row: Int, column: Int)
+
+    var delegate: DelegateProxy<NSBrowser, NSBrowserDelegate> {
+        _delegate
+    }
+
+    private var _delegate: RxNSBrowserDelegateProxy {
+        RxNSBrowserDelegateProxy.proxy(for: base)
+    }
+
+    func setDelegate(_ delegate: NSBrowserDelegate) -> Disposable {
+        RxNSBrowserDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
+    }
 
     func rootNode<Node: NodeType, Cell: NSCell, Source: ObservableType>(cellClass: Cell.Type)
         -> (_ source: Source)
@@ -23,15 +34,34 @@ public extension Reactive where Base: NSBrowser {
         -> (_ source: Source)
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
-            source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak browser = base] (_: RxBrowserDelegateProxy, event) in
-                guard let browser = browser else { return }
-                adapter.browser(browser, observedEvent: event)
+            let adapterSubscription = _delegate.setRequiredMethodsDelegate(adapter)
+            
+            base.layoutSubtreeIfNeeded()
+            
+            let subscription = source.asObservable()
+                .observe(on: MainScheduler())
+                .catch { error in
+                    bindingError(error)
+                    return Observable.empty()
+                }
+                // source can never end, otherwise it would release the subscriber, and deallocate the data source
+                .concat(Observable.never())
+                .take(until: base.rx.deallocated)
+                .subscribe { [weak object = base] event in
+                    guard let broswer = object else { return }
+                    adapter.browser(broswer, observedEvent: event)
+                }
+
+            return Disposables.create { [weak object = base] in
+                adapterSubscription.dispose()
+                subscription.dispose()
+                object?.layoutSubtreeIfNeeded()
             }
         }
     }
 
     var clickedIndex: ControlEvent<ClickedIndex> {
-        controlEventForBaseAction { ($0.clickedRow, $0.clickedRow) }
+        controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     var doubleClicked: ControlEvent<ClickedIndex> {

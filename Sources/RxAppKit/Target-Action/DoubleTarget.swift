@@ -1,65 +1,54 @@
 import Foundation
 import RxSwift
-import RxCocoa
 
+@objc
 protocol HasDoubleAction: HasTargeAction {
     var doubleAction: Selector? { set get }
 }
 
 // This should be only used from `MainScheduler`
-final class DoubleClickTarget<Component: HasDoubleAction>: BaseTarget<Component> {
-    typealias Callback = (Component) -> Void
+final class DoubleClickTarget: RxTarget {
+    typealias Callback = () -> Void
 
-    let doubleActionSelector: Selector = #selector(doubleActionHandler)
+    let selector: Selector = #selector(doubleActionHandler)
 
-    var doubleActionCallback: Callback?
+    var callback: Callback?
 
-    init(_ component: Component, baseAction: @escaping Callback, doubleAction: @escaping Callback) {
+    init(callback: @escaping Callback) {
         MainScheduler.ensureRunningOnMainThread()
-        self.doubleActionCallback = doubleAction
-        super.init(component, baseAction: baseAction)
-        component.doubleAction = doubleActionSelector
+        self.callback = callback
     }
 
     @objc func doubleActionHandler() {
-        if let doubleActionCallback = doubleActionCallback, let component = component {
-            doubleActionCallback(component)
-        }
+        callback?()
     }
 
     override func dispose() {
         super.dispose()
-        component?.doubleAction = nil
-        doubleActionCallback = nil
+        callback = nil
     }
 }
 
 private var rx_double_click: UInt8 = 0
 
-extension Reactive where Base: HasDoubleAction {
+extension Reactive where Base: NSObject, Base: HasDoubleAction {
     var lazyDoubleClickObservable: Observable<Void> {
         base.rx.lazyInstanceObservable(&rx_double_click) { () -> Observable<Void> in
-            Observable.create { [weak weakControl = self.base] (observer: AnyObserver<Void>) in
-                guard let control = weakControl
-                else {
-                    observer.on(.completed)
-                    return Disposables.create()
-                }
+            Observable.create { /*[weak weakControl = self.base]*/ (observer: AnyObserver<Void>) in
+//                guard let control = weakControl else {
+//                    observer.on(.completed)
+//                    return Disposables.create()
+//                }
 
                 observer.on(.next(()))
-                let disposable: RxTarget
-                if let target = control.target as? BaseTarget<Base>,
-                   let baseAction = target.baseActionCallback {
-                    disposable = DoubleClickTarget(control, baseAction: baseAction) { _ in
-                        observer.on(.next(()))
-                    }
-                } else {
-                    disposable = DoubleClickTarget(control, baseAction: { _ in }, doubleAction: { _ in
-                        observer.on(.next(()))
-                    })
-                }
 
-                return disposable
+                let target = DoubleClickTarget {
+                    observer.on(.next(()))
+                }
+                
+                doubleActionProxy.addForwardTarget(target, action: nil, doubleAction: target.selector)
+                
+                return target
             }
             .take(until: self.deallocated)
             .share(replay: 1, scope: .whileConnected)

@@ -1,69 +1,56 @@
 import Foundation
 import RxSwift
-import RxCocoa
 
-protocol HasTargeAction: NSObject {
+@objc
+protocol HasTargeAction: AnyObject {
     var target: AnyObject? { set get }
     var action: Selector? { set get }
 }
 
+
 // This should be only used from `MainScheduler`
-class BaseTarget<Component: HasTargeAction>: RxTarget {
-    typealias Callback = (Component) -> Void
+class BaseTarget: RxTarget {
+    typealias Callback = () -> Void
 
     let selector = #selector(baseActionHandler)
 
-    weak var component: Component?
-    
-    var baseActionCallback: Callback?
+    var callback: Callback?
 
-    init(_ component: Component, baseAction: @escaping Callback) {
-        self.component = component
-        self.baseActionCallback = baseAction
-
+    init(callback: @escaping Callback) {
+        self.callback = callback
         super.init()
-
-        component.target = self
-        component.action = selector
-
-        let method = self.method(for: selector)
-        if method == nil {
-            fatalError("Can't find method")
-        }
     }
 
     @objc func baseActionHandler() {
-        if let callback = baseActionCallback, let component = component {
-            callback(component)
-        }
+        callback?()
     }
 
     override func dispose() {
         super.dispose()
-        component?.target = nil
-        component?.action = nil
-        baseActionCallback = nil
+        callback = nil
     }
 }
 
 private var rx_control_observable_key: UInt8 = 0
 
-extension Reactive where Base: HasTargeAction {
+extension Reactive where Base: NSObject, Base: HasTargeAction {
     var lazyControlObservable: Observable<Void> {
         base.rx.lazyInstanceObservable(&rx_control_observable_key) { () -> Observable<Void> in
-            Observable.create { [weak weakControl = self.base] (observer: AnyObserver<Void>) in
-                guard let control = weakControl else {
-                    observer.on(.completed)
-                    return Disposables.create()
-                }
+            Observable.create { /*[weak weakControl = self.base]*/ (observer: AnyObserver<Void>) in
+//                guard let control = weakControl else {
+//                    observer.on(.completed)
+//                    return Disposables.create()
+//                }
 
                 observer.on(.next(()))
 
-                let disposable = BaseTarget(control) { _ in
+                let target = BaseTarget{
                     observer.on(.next(()))
                 }
 
-                return disposable
+                proxy.addForwardTarget(target, action: target.selector, doubleAction: nil)
+
+                return target
             }
             .take(until: self.deallocated)
             .share(replay: 1, scope: .whileConnected)
@@ -81,7 +68,7 @@ extension Reactive where Base: HasTargeAction {
 
         return ControlEvent(events: source)
     }
-    
+
     func controlProperty<Value>(valuePath: ReferenceWritableKeyPath<Base, Value>) -> ControlProperty<Value> {
         return base.rx.controlProperty(
             getter: { control -> Value in
@@ -103,10 +90,10 @@ extension Reactive where Base: HasTargeAction {
         MainScheduler.ensureRunningOnMainThread()
 
         let source = lazyControlObservable
-        .flatMap { [weak base] _ -> Observable<T> in
-            guard let control = base else { return Observable.empty() }
-            return Observable.just(getter(control))
-        }
+            .flatMap { [weak base] _ -> Observable<T> in
+                guard let control = base else { return Observable.empty() }
+                return Observable.just(getter(control))
+            }
 
         let bindingObserver = Binder(base, binding: setter)
 

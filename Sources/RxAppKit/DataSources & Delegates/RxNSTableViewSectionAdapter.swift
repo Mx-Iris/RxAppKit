@@ -1,6 +1,5 @@
 import AppKit
 import RxSwift
-import RxCocoa
 import DifferenceKit
 
 open class RxNSTableViewSectionAdapter<Section: DifferentiableSection>: TableViewAdapter<Section.Collection.Element>, RxNSTableViewDataSourceType {

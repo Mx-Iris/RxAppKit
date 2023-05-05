@@ -23,11 +23,13 @@ let package = Package(
         .target(
             name: "RxAppKit",
             dependencies: [
+                "RxAppKitObjC",
                 .product(name: "RxSwift", package: "RxSwift"),
                 .product(name: "RxCocoa", package: "RxSwift"),
                 .product(name: "DifferenceKit", package: "DifferenceKit"),
             ]
         ),
+        .target(name: "RxAppKitObjC"),
         .testTarget(
             name: "RxAppKitTests",
             dependencies: ["RxAppKit"]

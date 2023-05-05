@@ -1,6 +1,5 @@
 import AppKit
 import RxSwift
-import RxCocoa
 import DifferenceKit
 
 open class CollectionViewSectionedDataSource<Section: DifferentiableSection>: CollectionViewDataSource<Section.Collection.Element>, SectionedViewDataSourceType {

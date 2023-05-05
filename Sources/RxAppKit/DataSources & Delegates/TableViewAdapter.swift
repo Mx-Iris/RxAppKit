@@ -1,7 +1,4 @@
 import AppKit
-import RxSwift
-import RxCocoa
-import DifferenceKit
 
 open class TableViewAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDelegate {
     public typealias CellProvider = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: T) -> NSView?

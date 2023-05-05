@@ -1,6 +1,5 @@
 import AppKit
 import RxSwift
-import RxCocoa
 
 open class RxNSBrowserAdapter<Node: NodeType, Cell: NSCell>: BrowserAdapter<Node, Cell>, RxNSBrowserDelegateType {
     public typealias Element = Node

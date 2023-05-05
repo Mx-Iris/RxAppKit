@@ -5,18 +5,22 @@ import DifferenceKit
 
 extension NSTableView: HasDoubleAction {}
 
+public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
+
+public typealias TableIndex = (row: Int, column: Int)
+
 public extension Reactive where Base: NSTableView {
     typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
-
-    var doubleClick: ControlEvent<(clickedRow: Int, clickedColumn: Int)> {
-        controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
-    }
 
     var dataSource: DelegateProxy<NSTableView, NSTableViewDataSource> {
         RxNSTableViewDataSourceProxy.proxy(for: base)
     }
 
-    var delegate: RxNSTableViewDelegateProxy {
+    var delegate: DelegateProxy<NSTableView, NSTableViewDelegate> {
+        _delegate
+    }
+
+    private var _delegate: RxNSTableViewDelegateProxy {
         RxNSTableViewDelegateProxy.proxy(for: base)
     }
 
@@ -37,7 +41,7 @@ public extension Reactive where Base: NSTableView {
         -> (_ source: Source)
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
-            self.delegate.setRequiredMethodsDelegate(adapter)
+            self._delegate.setRequiredMethodsDelegate(adapter)
             let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak tableView = self.base] (_: RxNSTableViewDataSourceProxy, event) in
                 guard let tableView = tableView else { return }
                 adapter.tableView(tableView, observedEvent: event)
@@ -46,28 +50,42 @@ public extension Reactive where Base: NSTableView {
         }
     }
 
-    var itemSelected: ControlEvent<(selectedRowIndexes: IndexSet, selectedColumnIndexes: IndexSet)> {
-        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableViewSelectionDidChange(_:)))
-            .map { a -> (selectedRowIndexes: IndexSet, selectedColumnIndexes: IndexSet) in
-                let note = try castOrThrow(Notification.self, a[0])
-                let tableView = (note.object as! NSTableView)
-                return (tableView.selectedRowIndexes, tableView.selectedColumnIndexes)
-            }
-        return ControlEvent(events: source)
+    var didDoubleClick: ControlEvent<TableIndex> {
+        controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
-    var itemAdded: ControlEvent<(rowView: NSTableRowView, row: Int)> {
+    var didClick: ControlEvent<TableIndex> {
+        controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
+    }
+
+    var didAddRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {
         let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didAdd:forRow:)))
             .map { a -> (rowView: NSTableRowView, row: Int) in
-                (try castOrThrow(NSTableRowView.self, a[1]), try castOrThrow(Int.self, a[2]))
+                try (castOrThrow(NSTableRowView.self, a[1]), castOrThrow(Int.self, a[2]))
             }
         return ControlEvent(events: source)
     }
 
-    var itemRemoved: ControlEvent<(rowView: NSTableRowView, row: Int)> {
+    var didRemoveRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {
         let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didRemove:forRow:)))
             .map { a -> (rowView: NSTableRowView, row: Int) in
-                (try castOrThrow(NSTableRowView.self, a[1]), try castOrThrow(Int.self, a[2]))
+                try (castOrThrow(NSTableRowView.self, a[1]), castOrThrow(Int.self, a[2]))
+            }
+        return ControlEvent(events: source)
+    }
+
+    var didClickColumn: ControlEvent<NSTableColumn> {
+        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didClick:)))
+            .map { a -> NSTableColumn in
+                try castOrThrow(NSTableColumn.self, a[1])
+            }
+        return ControlEvent(events: source)
+    }
+
+    var didDragColumn: ControlEvent<NSTableColumn> {
+        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didDrag:)))
+            .map { a -> NSTableColumn in
+                try castOrThrow(NSTableColumn.self, a[1])
             }
         return ControlEvent(events: source)
     }

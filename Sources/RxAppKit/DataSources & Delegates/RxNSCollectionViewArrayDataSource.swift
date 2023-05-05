@@ -1,6 +1,5 @@
 import AppKit
 import RxSwift
-import RxCocoa
 
 
 public class CollectionViewArrayDataSource<Sequence: Swift.Sequence>: CollectionViewDataSource<Sequence.Element> {

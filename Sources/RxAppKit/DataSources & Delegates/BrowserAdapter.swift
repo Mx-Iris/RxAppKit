@@ -1,6 +1,5 @@
 import AppKit
 import RxSwift
-import RxCocoa
 
 public protocol NodeType {
     associatedtype Child
