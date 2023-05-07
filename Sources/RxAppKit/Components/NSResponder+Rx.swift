@@ -132,6 +132,16 @@ public extension Reactive where Base: NSResponder {
         responderEvent(#selector(Base.pressureChange(with:)))
     }
 
+    var becomeFirstResponder: ControlEvent<Void> {
+        let source = methodInvoked(#selector(Base.becomeFirstResponder)).map { _ in }
+        return ControlEvent(events: source)
+    }
+    
+    var resignFirstResponder: ControlEvent<Void> {
+        let source = methodInvoked(#selector(Base.resignFirstResponder)).map { _ in }
+        return ControlEvent(events: source)
+    }
+    
     private func responderEvent(_ selector: Selector) -> ControlEvent<NSEvent> {
         let source = methodInvoked(selector).map {
             try castOrThrow(NSEvent.self, $0[0])

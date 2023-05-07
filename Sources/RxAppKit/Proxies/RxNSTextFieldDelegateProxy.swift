@@ -6,7 +6,7 @@ extension NSTextField: HasDelegate {
     public typealias Delegate = NSTextFieldDelegate
 }
 
-open class RxNSTextFieldDelegateProxy: DelegateProxy<NSTextField, NSTextFieldDelegate>, DelegateProxyType, NSTextFieldDelegate {
+class RxNSTextFieldDelegateProxy: DelegateProxy<NSTextField, NSTextFieldDelegate>, DelegateProxyType, NSTextFieldDelegate {
     /// Typed parent object.
     public private(set) weak var textField: NSTextField?
 

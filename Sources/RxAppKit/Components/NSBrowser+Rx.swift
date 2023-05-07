@@ -18,13 +18,13 @@ public extension Reactive where Base: NSBrowser {
         RxNSBrowserDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    func rootNode<Node: NodeType, Cell: NSCell, Source: ObservableType>(cellClass: Cell.Type)
+    func rootNode<BrowserNode: BrowserNodeType, Cell: NSCell, Source: ObservableType>(cellClass: Cell.Type)
         -> (_ source: Source)
-        -> (_ configureCell: @escaping (_ node: Node, _ cell: Cell, _ row: Int, _ column: Int) -> Void)
-        -> Disposable where Source.Element == Node {
+        -> (_ configureCell: @escaping (_ node: BrowserNode, _ cell: Cell, _ row: Int, _ column: Int) -> Void)
+        -> Disposable where Source.Element == BrowserNode {
         return { source in
             { configureCell in
-                let adapter = RxNSBrowserAdapter<Node, Cell>(configureCell: configureCell)
+                let adapter = RxNSBrowserAdapter<BrowserNode, Cell>(configureCell: configureCell)
                 return self.rootNode(adapter: adapter)(source)
             }
         }

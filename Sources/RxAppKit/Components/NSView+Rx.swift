@@ -3,13 +3,13 @@ import RxSwift
 import RxCocoa
 
 extension Reactive where Base: NSView {
-    var firstLayout: Signal<Void> {
-        base.rx.methodInvoked(#selector(Base.layout))
+    var didFirstLayout: ControlEvent<Void> {
+        let source = base.rx.methodInvoked(#selector(Base.layout))
             .map { _ in }
             .take(1)
-            .asSignal(onErrorJustReturn: ())
+        return ControlEvent(events: source)
     }
-    
+
     var didUpdateTrackingAreas: ControlEvent<Void> {
         controlEventForNotification(Base.didUpdateTrackingAreasNotification, object: base)
     }

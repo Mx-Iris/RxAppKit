@@ -7,6 +7,11 @@ protocol HasTargeAction: AnyObject {
     var action: Selector? { set get }
 }
 
+extension HasTargeAction where Self: AnyObject {
+    var targetSetterSelector: Selector { #selector(setter: target) }
+    var actionSetterSelector: Selector { #selector(setter: action) }
+}
+
 @objc
 protocol HasTargetRequiredAction: AnyObject {
     var target: AnyObject? { set get }

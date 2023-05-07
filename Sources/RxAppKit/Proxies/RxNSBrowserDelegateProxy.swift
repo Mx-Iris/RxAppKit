@@ -26,7 +26,7 @@ private class BroswerDelegateNotSet: NSObject, NSBrowserDelegate {
 
 private let broswerDelegateNotSet = BroswerDelegateNotSet()
 
-open class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, DelegateProxyType, NSBrowserDelegate {
+class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, DelegateProxyType, NSBrowserDelegate {
     public private(set) weak var browser: NSBrowser?
 
     public init(browser: NSBrowser) {

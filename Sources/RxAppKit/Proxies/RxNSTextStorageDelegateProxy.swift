@@ -6,12 +6,11 @@ extension NSTextStorage: HasDelegate {
     public typealias Delegate = NSTextStorageDelegate
 }
 
-open class RxNSTextStorageDelegateProxy
+class RxNSTextStorageDelegateProxy
     : DelegateProxy<NSTextStorage, NSTextStorageDelegate>
     , DelegateProxyType {
-
     /// Typed parent object.
-    public weak private(set) var textStorage: NSTextStorage?
+    public private(set) weak var textStorage: NSTextStorage?
 
     /// - parameter textStorage: Parent object for delegate proxy.
     public init(textStorage: NSTextStorage) {
@@ -21,7 +20,7 @@ open class RxNSTextStorageDelegateProxy
 
     // Register known implementations
     public static func registerKnownImplementations() {
-        self.register { RxNSTextStorageDelegateProxy(textStorage: $0) }
+        register { RxNSTextStorageDelegateProxy(textStorage: $0) }
     }
 }
 

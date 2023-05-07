@@ -84,11 +84,11 @@ extension Reactive where Base: NSObject, Base: HasTargeAction {
             typealias TargetSetter = @convention(c) (NSObject, Selector, AnyObject?) -> Void
             typealias ActionSetter = @convention(c) (NSObject, Selector, Selector?) -> Void
 
-            let setTargetImpl = class_getMethodImplementation(superclass, #selector(setter: base.target))
-            unsafeBitCast(setTargetImpl, to: TargetSetter.self)(base, #selector(setter: base.target), proxy)
+            let setTargetImpl = class_getMethodImplementation(superclass, base.targetSetterSelector)
+            unsafeBitCast(setTargetImpl, to: TargetSetter.self)(base, base.targetSetterSelector, proxy)
 
-            let setActionImpl = class_getMethodImplementation(superclass, #selector(setter: base.action))
-            unsafeBitCast(setActionImpl, to: ActionSetter.self)(base, #selector(setter: base.action), #selector(proxy.action(_:)))
+            let setActionImpl = class_getMethodImplementation(superclass, base.actionSetterSelector)
+            unsafeBitCast(setActionImpl, to: ActionSetter.self)(base, base.actionSetterSelector, #selector(proxy.action(_:)))
 
             base.associations.setValue(proxy, forKey: key)
 
@@ -96,8 +96,8 @@ extension Reactive where Base: NSObject, Base: HasTargeAction {
                 if let proxy = object.associations.value(forKey: key) {
                     proxy.currentTargetPair.target = target
                 } else {
-                    let impl = class_getMethodImplementation(superclass, #selector(setter: self.base.target))
-                    unsafeBitCast(impl, to: TargetSetter.self)(object, #selector(setter: self.base.target), target)
+                    let impl = class_getMethodImplementation(superclass, base.targetSetterSelector)
+                    unsafeBitCast(impl, to: TargetSetter.self)(object, base.targetSetterSelector, target)
                 }
             }
 
@@ -105,15 +105,15 @@ extension Reactive where Base: NSObject, Base: HasTargeAction {
                 if let proxy = object.associations.value(forKey: key) {
                     proxy.currentTargetPair.action = action
                 } else {
-                    let impl = class_getMethodImplementation(superclass, #selector(setter: self.base.action))
-                    unsafeBitCast(impl, to: ActionSetter.self)(object, #selector(setter: self.base.action), action)
+                    let impl = class_getMethodImplementation(superclass, base.actionSetterSelector)
+                    unsafeBitCast(impl, to: ActionSetter.self)(object, base.actionSetterSelector, action)
                 }
             }
 
             // Swizzle the instance only after setting up the proxy.
             base.swizzle(
-                (#selector(setter: base.target), newTargetSetterImpl),
-                (#selector(setter: base.action), newActionSetterImpl),
+                (base.targetSetterSelector, newTargetSetterImpl),
+                (base.actionSetterSelector, newActionSetterImpl),
                 key: hasSwizzledKey
             )
 

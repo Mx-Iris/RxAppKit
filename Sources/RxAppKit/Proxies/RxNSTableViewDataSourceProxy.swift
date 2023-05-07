@@ -14,7 +14,7 @@ private final class NSTableViewDataSourceNotSet: NSObject, NSTableViewDataSource
     }
 }
 
-public class RxNSTableViewDataSourceProxy: DelegateProxy<NSTableView, NSTableViewDataSource>, DelegateProxyType {
+class RxNSTableViewDataSourceProxy: DelegateProxy<NSTableView, NSTableViewDataSource>, DelegateProxyType {
     public private(set) weak var tableView: NSTableView?
 
     public init(tableView: ParentObject) {
