@@ -4,21 +4,13 @@ import RxCocoa
 
 extension NSColorPanel: HasTargeAction {
     var target: AnyObject? {
-        set {
-            setTarget(newValue)
-        }
-        get {
-            nil
-        }
+        set { setTarget(newValue) }
+        get { nil }
     }
     
     var action: Selector? {
-        set {
-            setAction(newValue)
-        }
-        get {
-            nil
-        }
+        set { setAction(newValue) }
+        get { nil }
     }
     
     var targetSetterSelector: Selector { #selector(setTarget(_:)) }

@@ -46,4 +46,36 @@ public extension Reactive where Base: NSSavePanel {
         let source = methodInvoked(#selector(Base.cancel(_:))).map { _ in base }
         return ControlEvent(events: source)
     }
+    
+    func begin() -> ControlEvent<(panel: Base, result: NSApplication.ModalResponse)> {
+        let source = Observable<(panel: Base, result: NSApplication.ModalResponse)>.create { [weak panel = base] observer in
+            guard let panel = panel else {
+                observer.on(.completed)
+                return Disposables.create {}
+            }
+            base.begin { result in
+                observer.on(.next((panel, result)))
+                observer.on(.completed)
+            }
+            return Disposables.create {}
+        }
+        .subscribe(on: MainScheduler.instance)
+        return ControlEvent(events: source)
+    }
+    
+    func beginSheetModal(for window: NSWindow) -> ControlEvent<(panel: Base, result: NSApplication.ModalResponse)> {
+        let source = Observable<(panel: Base, result: NSApplication.ModalResponse)>.create { [weak panel = base] observer in
+            guard let panel = panel else {
+                observer.on(.completed)
+                return Disposables.create {}
+            }
+            base.beginSheetModal(for: window) { result in
+                observer.on(.next((panel, result)))
+                observer.on(.completed)
+            }
+            return Disposables.create {}
+        }
+        .subscribe(on: MainScheduler.instance)
+        return ControlEvent(events: source)
+    }
 }

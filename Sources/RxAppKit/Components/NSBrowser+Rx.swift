@@ -7,13 +7,9 @@ public extension Reactive where Base: NSBrowser {
     typealias ClickedIndex = (row: Int, column: Int)
 
     var delegate: DelegateProxy<NSBrowser, NSBrowserDelegate> {
-        _delegate
-    }
-
-    private var _delegate: RxNSBrowserDelegateProxy {
         RxNSBrowserDelegateProxy.proxy(for: base)
     }
-
+    
     func setDelegate(_ delegate: NSBrowserDelegate) -> Disposable {
         RxNSBrowserDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
@@ -34,7 +30,7 @@ public extension Reactive where Base: NSBrowser {
         -> (_ source: Source)
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
-            let adapterSubscription = _delegate.setRequiredMethodsDelegate(adapter)
+            let adapterSubscription = RxNSBrowserDelegateProxy.proxy(for: base).setRequiredMethodsDelegate(adapter)
 
             base.layoutSubtreeIfNeeded()
 

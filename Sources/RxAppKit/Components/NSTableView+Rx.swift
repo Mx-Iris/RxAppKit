@@ -12,15 +12,11 @@ public typealias TableIndex = (row: Int, column: Int)
 public extension Reactive where Base: NSTableView {
     typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
 
-    var dataSource: DelegateProxy<NSTableView, NSTableViewDataSource> {
+    var tableViewDataSource: DelegateProxy<NSTableView, NSTableViewDataSource> {
         RxNSTableViewDataSourceProxy.proxy(for: base)
     }
 
-    var delegate: DelegateProxy<NSTableView, NSTableViewDelegate> {
-        _delegate
-    }
-
-    private var _delegate: RxNSTableViewDelegateProxy {
+    var tableViewDelegate: DelegateProxy<NSTableView, NSTableViewDelegate> {
         RxNSTableViewDelegateProxy.proxy(for: base)
     }
 
@@ -41,12 +37,12 @@ public extension Reactive where Base: NSTableView {
         -> (_ source: Source)
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
-            self._delegate.setRequiredMethodsDelegate(adapter)
             let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak tableView = self.base] (_: RxNSTableViewDataSourceProxy, event) in
                 guard let tableView = tableView else { return }
                 adapter.tableView(tableView, observedEvent: event)
             }
-            return Disposables.create([dataSourceSubscription])
+            let delegateSubscription = RxNSTableViewDelegateProxy.proxy(for: base).setRequiredMethodsDelegate(adapter)
+            return Disposables.create([dataSourceSubscription, delegateSubscription])
         }
     }
 
@@ -59,7 +55,7 @@ public extension Reactive where Base: NSTableView {
     }
 
     var didAddRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {
-        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didAdd:forRow:)))
+        let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didAdd:forRow:)))
             .map { a -> (rowView: NSTableRowView, row: Int) in
                 try (castOrThrow(NSTableRowView.self, a[1]), castOrThrow(Int.self, a[2]))
             }
@@ -67,7 +63,7 @@ public extension Reactive where Base: NSTableView {
     }
 
     var didRemoveRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {
-        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didRemove:forRow:)))
+        let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didRemove:forRow:)))
             .map { a -> (rowView: NSTableRowView, row: Int) in
                 try (castOrThrow(NSTableRowView.self, a[1]), castOrThrow(Int.self, a[2]))
             }
@@ -75,7 +71,7 @@ public extension Reactive where Base: NSTableView {
     }
 
     var didClickColumn: ControlEvent<NSTableColumn> {
-        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didClick:)))
+        let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didClick:)))
             .map { a -> NSTableColumn in
                 try castOrThrow(NSTableColumn.self, a[1])
             }
@@ -83,7 +79,7 @@ public extension Reactive where Base: NSTableView {
     }
 
     var didDragColumn: ControlEvent<NSTableColumn> {
-        let source = delegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didDrag:)))
+        let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didDrag:)))
             .map { a -> NSTableColumn in
                 try castOrThrow(NSTableColumn.self, a[1])
             }

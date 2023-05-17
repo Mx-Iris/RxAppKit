@@ -20,8 +20,12 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
 
     private weak var _requiredMethodsDelegate: NSTableViewDelegate?
 
-    func setRequiredMethodsDelegate(_ requiredMethodsDelegate: NSTableViewDelegate) {
+    func setRequiredMethodsDelegate(_ requiredMethodsDelegate: NSTableViewDelegate) -> Disposable {
         _requiredMethodsDelegate = requiredMethodsDelegate
+        return Disposables.create { [weak self] in
+            guard let self = self else { return }
+            self._requiredMethodsDelegate = nil
+        }
     }
 
     public func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
