@@ -10,8 +10,9 @@ public extension Reactive where Base: NSPopUpButton {
         controlEventForBaseAction { $0.selectedItem?.title }
     }
 
-    func contents<Source: ObservableType>(source: Source) -> Disposable where Source.Element == [String] {
-        return source.subscribe(with: base) { target, contents in
+    
+    var items: Binder<[String]> {
+        .init(base) { target, contents in
             if target.itemTitles.isEmpty {
                 target.addItems(withTitles: contents)
             } else {
@@ -20,13 +21,16 @@ public extension Reactive where Base: NSPopUpButton {
                     $0.elementInserted.forEach {
                         target.insertItem(withTitle: contents[$0.element], at: $0.element)
                     }
-                    $0.elementDeleted.forEach {
-                        target.removeItem(at: $0.element)
-                    }
+                    
+                    $0.elementDeleted
+                        .map { target.itemTitles[$0.element] }
+                        .forEach { target.removeItem(withTitle: $0) }
+                    
                     $0.elementMoved.forEach {
                         target.removeItem(at: $0.source.element)
                         target.insertItem(withTitle: contents[$0.target.element], at: $0.target.element)
                     }
+                    
                     $0.elementUpdated.forEach {
                         target.removeItem(at: $0.element)
                         target.insertItem(withTitle: contents[$0.element], at: $0.element)
@@ -35,4 +39,33 @@ public extension Reactive where Base: NSPopUpButton {
             }
         }
     }
+    
+//    func contents<Source: ObservableType>(source: Source) -> Disposable where Source.Element == [String] {
+//        return source.subscribe(with: base) { target, contents in
+//            if target.itemTitles.isEmpty {
+//                target.addItems(withTitles: contents)
+//            } else {
+//                let changeset = StagedChangeset(source: target.itemTitles, target: contents)
+//                changeset.forEach {
+//                    $0.elementInserted.forEach {
+//                        target.insertItem(withTitle: contents[$0.element], at: $0.element)
+//                    }
+//
+//                    $0.elementDeleted
+//                        .map { target.itemTitles[$0.element] }
+//                        .forEach { target.removeItem(withTitle: $0) }
+//
+//                    $0.elementMoved.forEach {
+//                        target.removeItem(at: $0.source.element)
+//                        target.insertItem(withTitle: contents[$0.target.element], at: $0.target.element)
+//                    }
+//
+//                    $0.elementUpdated.forEach {
+//                        target.removeItem(at: $0.element)
+//                        target.insertItem(withTitle: contents[$0.element], at: $0.element)
+//                    }
+//                }
+//            }
+//        }
+//    }
 }

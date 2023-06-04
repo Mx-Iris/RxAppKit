@@ -29,7 +29,11 @@ let package = Package(
                 .product(name: "DifferenceKit", package: "DifferenceKit"),
             ]
         ),
-        .target(name: "RxAppKitObjC"),
+
+        .target(
+            name: "RxAppKitObjC"
+        ),
+
         .testTarget(
             name: "RxAppKitTests",
             dependencies: ["RxAppKit"]

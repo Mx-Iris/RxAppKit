@@ -19,15 +19,18 @@ open class TableViewAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDele
     }
     
     open func numberOfRows(in tableView: NSTableView) -> Int {
-        return 0
+//        return 0
+        rxAbstractMethod()
     }
     
     open func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        return nil
+//        return nil
+        rxAbstractMethod()
     }
     
     open func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-        return nil
+//        return nil
+        rxAbstractMethod()
     }
 
 }

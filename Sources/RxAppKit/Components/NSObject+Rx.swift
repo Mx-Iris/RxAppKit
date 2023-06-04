@@ -28,4 +28,9 @@ extension Reactive where Base: AnyObject {
         }
         return ControlEvent(events: source)
     }
+    
+    func controlEventForSelector(_ selector: Selector) -> ControlEvent<Void> {
+        let source = methodInvoked(selector).map { _ in }
+        return ControlEvent(events: source)
+    }
 }

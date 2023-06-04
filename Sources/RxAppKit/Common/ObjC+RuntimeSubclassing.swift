@@ -1,5 +1,5 @@
 import Foundation
-import RxAppKitObjC
+@_implementationOnly import RxAppKitObjC
 
 /// Whether the runtime subclass has already been swizzled.
 fileprivate let runtimeSubclassedKey = AssociationKey(default: false)

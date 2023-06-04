@@ -1,0 +1,20 @@
+//
+//  NSWindowController+Rx.swift
+//
+//
+//  Created by JH on 2023/5/24.
+//
+
+import AppKit
+import RxSwift
+import RxCocoa
+
+extension Reactive where Base: NSWindowController {
+    var windowWillLoad: ControlEvent<Void> {
+        controlEventForSelector(#selector(Base.windowWillLoad))
+    }
+
+    var windowDidLoad: ControlEvent<Void> {
+        controlEventForSelector(#selector(Base.windowDidLoad))
+    }
+}
