@@ -10,8 +10,10 @@ public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
 public typealias TableIndex = (row: Int, column: Int)
 
 public extension Reactive where Base: NSTableView {
-    typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
-
+    
+    typealias CellProvider<Item: Hashable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
+    typealias RowProvider<Item: Hashable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
+    
     var tableViewDataSource: DelegateProxy<NSTableView, NSTableViewDataSource> {
         RxNSTableViewDataSourceProxy.proxy(for: base)
     }
@@ -24,11 +26,19 @@ public extension Reactive where Base: NSTableView {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (@escaping CellProvider<Element>)
+    func items<Element: Hashable, Source: ObservableType>(_ source: Source)
+        -> (_ cellProvider: @escaping CellProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider in
-            let adapter = RxNSTableViewArrayAdapter<Element>(cellProvider: cellProvider)
+            return self.items(source)(cellProvider, { _, _, _ in NSTableRowView() })
+        }
+    }
+
+    func items<Element: Hashable, Source: ObservableType>(_ source: Source)
+        -> (_ cellProvider: @escaping CellProvider<Element>, _ rowProvider: @escaping RowProvider<Element>)
+        -> Disposable where Source.Element == [Element] {
+        return { cellProvider, rowProvider in
+            let adapter = RxNSTableViewArrayAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)
             return self.items(adapter: adapter)(source)
         }
     }
@@ -52,6 +62,10 @@ public extension Reactive where Base: NSTableView {
 
     var didClick: ControlEvent<TableIndex> {
         controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
+    }
+
+    var didSelect: ControlEvent<TableIndex> {
+        controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
     }
 
     var didAddRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {

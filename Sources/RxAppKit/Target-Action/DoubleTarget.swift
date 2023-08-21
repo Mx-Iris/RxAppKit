@@ -40,7 +40,7 @@ extension Reactive where Base: NSObject, Base: HasDoubleAction {
 //                    return Disposables.create()
 //                }
 
-                observer.on(.next(()))
+//                observer.on(.next(()))
 
                 let target = DoubleClickTarget {
                     observer.on(.next(()))

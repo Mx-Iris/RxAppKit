@@ -18,7 +18,6 @@ protocol HasTargetRequiredAction: AnyObject {
     var action: Selector { set get }
 }
 
-
 // This should be only used from `MainScheduler`
 class BaseTarget: RxTarget {
     typealias Callback = () -> Void
@@ -43,19 +42,38 @@ class BaseTarget: RxTarget {
 }
 
 private var rx_control_observable_key: UInt8 = 0
-
+private var rx_appkit_control_event_key: Void = ()
+private var rx_appkit_control_property_key: Void = ()
 extension Reactive where Base: NSObject, Base: HasTargeAction {
-    var lazyControlObservable: Observable<Void> {
-        base.rx.lazyInstanceObservable(&rx_control_observable_key) { () -> Observable<Void> in
-            Observable.create { /*[weak weakControl = self.base]*/ (observer: AnyObserver<Void>) in
-//                guard let control = weakControl else {
-//                    observer.on(.completed)
-//                    return Disposables.create()
+//    var lazyControlObservable: Observable<Void> {
+//        base.rx.lazyInstanceObservable(&rx_control_observable_key) { () -> Observable<Void> in
+//            Observable.create { (observer: AnyObserver<Void>) in
+//
+//                observer.on(.next(()))
+//
+//                let target = BaseTarget{
+//                    observer.on(.next(()))
 //                }
+//
+//                proxy.addForwardTarget(target, action: target.selector, doubleAction: nil)
+//
+//                return target
+//            }
+//            .take(until: self.deallocated)
+    ////            .share(replay: 1, scope: .whileConnected)
+//            .share()
+//        }
+//    }
 
-                observer.on(.next(()))
+    func controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
+        MainScheduler.ensureRunningOnMainThread()
 
-                let target = BaseTarget{
+        let source = base.rx.lazyInstanceObservable(&rx_appkit_control_event_key) { () -> Observable<Void> in
+            Observable.create { (observer: AnyObserver<Void>) in
+
+//                observer.on(.next(()))
+
+                let target = BaseTarget {
                     observer.on(.next(()))
                 }
 
@@ -64,18 +82,13 @@ extension Reactive where Base: NSObject, Base: HasTargeAction {
                 return target
             }
             .take(until: self.deallocated)
-            .share(replay: 1, scope: .whileConnected)
+//            .share(replay: 1, scope: .whileConnected)
+            .share()
         }
-    }
-
-    func controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
-        MainScheduler.ensureRunningOnMainThread()
-
-        let source = lazyControlObservable
-            .flatMap { [weak base] _ -> Observable<PropertyType> in
-                guard let base = base else { return .empty() }
-                return Observable.just(makeEvent(base))
-            }
+        .flatMap { [weak base] _ -> Observable<PropertyType> in
+            guard let base = base else { return .empty() }
+            return Observable.just(makeEvent(base))
+        }
 
         return ControlEvent(events: source)
     }
@@ -100,11 +113,26 @@ extension Reactive where Base: NSObject, Base: HasTargeAction {
     ) -> ControlProperty<T> {
         MainScheduler.ensureRunningOnMainThread()
 
-        let source = lazyControlObservable
-            .flatMap { [weak base] _ -> Observable<T> in
-                guard let control = base else { return Observable.empty() }
-                return Observable.just(getter(control))
+        let source = base.rx.lazyInstanceObservable(&rx_appkit_control_property_key) { () -> Observable<Void> in
+            Observable.create { (observer: AnyObserver<Void>) in
+
+//                observer.on(.next(()))
+
+                let target = BaseTarget {
+                    observer.on(.next(()))
+                }
+
+                proxy.addForwardTarget(target, action: target.selector, doubleAction: nil)
+
+                return target
             }
+            .take(until: self.deallocated)
+            .share(replay: 1, scope: .whileConnected)
+        }
+        .flatMap { [weak base] _ -> Observable<T> in
+            guard let control = base else { return Observable.empty() }
+            return Observable.just(getter(control))
+        }
 
         let bindingObserver = Binder(base, binding: setter)
 
@@ -112,19 +140,39 @@ extension Reactive where Base: NSObject, Base: HasTargeAction {
     }
 }
 
-
 extension Reactive where Base: NSObject, Base: HasTargetRequiredAction {
-    var lazyControlObservable: Observable<Void> {
-        base.rx.lazyInstanceObservable(&rx_control_observable_key) { () -> Observable<Void> in
-            Observable.create { /*[weak weakControl = self.base]*/ (observer: AnyObserver<Void>) in
-//                guard let control = weakControl else {
-//                    observer.on(.completed)
-//                    return Disposables.create()
+//    var lazyControlObservable: Observable<Void> {
+//        base.rx.lazyInstanceObservable(&rx_control_observable_key) { () -> Observable<Void> in
+//            Observable.create { /* [weak weakControl = self.base] */ (observer: AnyObserver<Void>) in
+    ////                guard let control = weakControl else {
+    ////                    observer.on(.completed)
+    ////                    return Disposables.create()
+    ////                }
+//
+//                observer.on(.next(()))
+//
+//                let target = BaseTarget {
+//                    observer.on(.next(()))
 //                }
+//
+//                proxy.addForwardTarget(target, action: target.selector, doubleAction: nil)
+//
+//                return target
+//            }
+//            .take(until: self.deallocated)
+//            .share(replay: 1, scope: .whileConnected)
+//        }
+//    }
 
-                observer.on(.next(()))
+    func controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
+        MainScheduler.ensureRunningOnMainThread()
 
-                let target = BaseTarget{
+        let source = base.rx.lazyInstanceObservable(&rx_appkit_control_event_key) { () -> Observable<Void> in
+            Observable.create { (observer: AnyObserver<Void>) in
+
+//                observer.on(.next(()))
+
+                let target = BaseTarget {
                     observer.on(.next(()))
                 }
 
@@ -133,18 +181,12 @@ extension Reactive where Base: NSObject, Base: HasTargetRequiredAction {
                 return target
             }
             .take(until: self.deallocated)
-            .share(replay: 1, scope: .whileConnected)
+            .share()
         }
-    }
-
-    func controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
-        MainScheduler.ensureRunningOnMainThread()
-
-        let source = lazyControlObservable
-            .flatMap { [weak base] _ -> Observable<PropertyType> in
-                guard let base = base else { return .empty() }
-                return Observable.just(makeEvent(base))
-            }
+        .flatMap { [weak base] _ -> Observable<PropertyType> in
+            guard let base = base else { return .empty() }
+            return Observable.just(makeEvent(base))
+        }
 
         return ControlEvent(events: source)
     }
@@ -169,11 +211,26 @@ extension Reactive where Base: NSObject, Base: HasTargetRequiredAction {
     ) -> ControlProperty<T> {
         MainScheduler.ensureRunningOnMainThread()
 
-        let source = lazyControlObservable
-            .flatMap { [weak base] _ -> Observable<T> in
-                guard let control = base else { return Observable.empty() }
-                return Observable.just(getter(control))
+        let source = base.rx.lazyInstanceObservable(&rx_appkit_control_property_key) { () -> Observable<Void> in
+            Observable.create { (observer: AnyObserver<Void>) in
+
+//                observer.on(.next(()))
+
+                let target = BaseTarget {
+                    observer.on(.next(()))
+                }
+
+                proxy.addForwardTarget(target, action: target.selector, doubleAction: nil)
+
+                return target
             }
+            .take(until: self.deallocated)
+            .share(replay: 1, scope: .whileConnected)
+        }
+        .flatMap { [weak base] _ -> Observable<T> in
+            guard let control = base else { return Observable.empty() }
+            return Observable.just(getter(control))
+        }
 
         let bindingObserver = Binder(base, binding: setter)
 

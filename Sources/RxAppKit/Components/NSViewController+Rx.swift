@@ -10,28 +10,32 @@ import RxSwift
 import RxCocoa
 
 extension Reactive where Base: NSViewController {
-    var viewDidLoad: ControlEvent<Void> {
+    public var viewDidLoad: ControlEvent<Void> {
         controlEvent(for: #selector(Base.viewDidLoad))
     }
     
-    var viewWillAppear: ControlEvent<Void> {
+    public var viewWillAppear: ControlEvent<Void> {
         controlEvent(for: #selector(Base.viewWillAppear))
     }
     
-    var viewDidAppear: ControlEvent<Void> {
+    public var viewDidAppear: ControlEvent<Void> {
         controlEvent(for: #selector(Base.viewDidAppear))
     }
     
-    var viewWillDisappear: ControlEvent<Void> {
+    public var viewWillDisappear: ControlEvent<Void> {
         controlEvent(for: #selector(Base.viewWillDisappear))
     }
     
-    var viewWillLayout: ControlEvent<Void> {
+    public var viewWillLayout: ControlEvent<Void> {
         controlEvent(for: #selector(Base.viewWillLayout))
     }
     
-    var viewDidLayout: ControlEvent<Void> {
+    public var viewDidLayout: ControlEvent<Void> {
         controlEvent(for: #selector(Base.viewDidLayout))
+    }
+    
+    public var firstLayout: ControlEvent<Void> {
+        ControlEvent(events: viewDidLayout.take(1))
     }
     
     private func controlEvent(for selector: Selector) -> ControlEvent<Void> {

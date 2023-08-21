@@ -11,7 +11,7 @@ open class TableViewAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDele
 
     public init(
         cellProvider: @escaping CellProvider,
-        rowProvider: @escaping RowProvider = { _, _, _ in NSTableRowView() }
+        rowProvider: @escaping RowProvider
     ) {
         self.cellProvider = cellProvider
         self.rowProvider = rowProvider
