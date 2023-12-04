@@ -10,6 +10,24 @@
       }
     },
     {
+      "identity" : "arraybuilder",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/WilhelmOks/ArrayBuilder",
+      "state" : {
+        "revision" : "3d4627e90f461c77ea58b5b0d879d7387d97f28f",
+        "version" : "1.0.0"
+      }
+    },
+    {
+      "identity" : "cocoapreviews",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Mx-Iris/CocoaPreviews",
+      "state" : {
+        "revision" : "2f25f09314c905f09ea2893696914e218c553cae",
+        "version" : "1.0.0"
+      }
+    },
+    {
       "identity" : "differencekit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ra1028/DifferenceKit",
@@ -37,12 +55,39 @@
       }
     },
     {
+      "identity" : "reactivecocoa",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveCocoa/ReactiveCocoa",
+      "state" : {
+        "revision" : "8a5b07b18c6abb8e12fb845bf742675dc4914ed8",
+        "version" : "12.0.0"
+      }
+    },
+    {
+      "identity" : "reactiveswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveCocoa/ReactiveSwift",
+      "state" : {
+        "revision" : "40c465af19b993344e84355c00669ba2022ca3cd",
+        "version" : "7.1.1"
+      }
+    },
+    {
       "identity" : "rxswift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ReactiveX/RxSwift",
       "state" : {
-        "revision" : "b4307ba0b6425c0ba4178e138799946c3da594f8",
-        "version" : "6.5.0"
+        "revision" : "9dcaa4b333db437b0fbfaf453fad29069044a8b4",
+        "version" : "6.6.0"
+      }
+    },
+    {
+      "identity" : "snapkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SnapKit/SnapKit",
+      "state" : {
+        "revision" : "f222cbdf325885926566172f6f5f06af95473158",
+        "version" : "5.6.0"
       }
     },
     {
@@ -52,6 +97,51 @@
       "state" : {
         "revision" : "26cc5e9ae0947092c7139ef7ba612e34646086c7",
         "version" : "0.10.1"
+      }
+    },
+    {
+      "identity" : "splash",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/JohnSundell/Splash",
+      "state" : {
+        "revision" : "7f4df436eb78fe64fe2c32c58006e9949fa28ad8",
+        "version" : "0.16.0"
+      }
+    },
+    {
+      "identity" : "swift-cmark",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Mx-Iris/swift-cmark",
+      "state" : {
+        "branch" : "gfm",
+        "revision" : "f4f6340517ff161be78db8032845c958508e6841"
+      }
+    },
+    {
+      "identity" : "swift-markdown",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Mx-Iris/swift-markdown",
+      "state" : {
+        "branch" : "main",
+        "revision" : "e540ff853d1373d50b59c79c723995507ceeddef"
+      }
+    },
+    {
+      "identity" : "swift-markdown-ui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Mx-Iris/swift-markdown-ui",
+      "state" : {
+        "branch" : "main",
+        "revision" : "a2226fbc1f0d9f6da1131dee69f38335ca3edee5"
+      }
+    },
+    {
+      "identity" : "swiftformat",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nicklockwood/SwiftFormat",
+      "state" : {
+        "revision" : "1c1bf3b72a020cabe39ce7cd31fc47a3fdc90b44",
+        "version" : "0.52.3"
       }
     },
     {

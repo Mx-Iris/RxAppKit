@@ -1,5 +1,6 @@
 import AppKit
 import RxSwift
+import RxCocoa
 
 public class CollectionViewArrayDataSource<Sequence: Swift.Sequence>: CollectionViewDataSource<Sequence.Element> {
     public typealias Item = Sequence.Element
@@ -18,7 +19,7 @@ public class CollectionViewArrayDataSource<Sequence: Swift.Sequence>: Collection
     }
 }
 
-public class RxNSCollectionViewArrayDataSource<Sequence: Swift.Sequence>: CollectionViewArrayDataSource<Sequence>, RxNSCollectionViewDataSourceType {
+public class RxNSCollectionViewArrayDataSource<Sequence: Swift.Sequence>: CollectionViewArrayDataSource<Sequence>, RxNSCollectionViewDataSourceType, SectionedViewDataSourceType {
     public typealias Element = Sequence
 
     public func collectionView(_ collectionView: NSCollectionView, observedEvent: Event<Element>) {
@@ -26,5 +27,9 @@ public class RxNSCollectionViewArrayDataSource<Sequence: Swift.Sequence>: Collec
             dataSource.items = items
             collectionView.reloadData()
         }.on(observedEvent.map(Array.init))
+    }
+    
+    public func model(at indexPath: IndexPath) throws -> Any {
+        items[indexPath.item]
     }
 }

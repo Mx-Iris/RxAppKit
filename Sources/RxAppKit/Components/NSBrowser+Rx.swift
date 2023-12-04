@@ -35,7 +35,7 @@ public extension Reactive where Base: NSBrowser {
             base.layoutSubtreeIfNeeded()
 
             let subscription = source.asObservable()
-                .observe(on: MainScheduler())
+                .observe(on: MainScheduler.instance)
                 .catch { error in
                     bindingError(error)
                     return Observable.empty()

@@ -13,4 +13,7 @@
    <FileRef
       location = "group:Examples/NSBrowser-Example/NSBrowser-Example.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:../../../../../../../Users/JH/Desktop/RxMarkdownFriend/RxMarkdownFriend.xcodeproj">
+   </FileRef>
 </Workspace>

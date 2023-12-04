@@ -10,7 +10,7 @@ import XcodeProj
 import RxSwift
 import RxCocoa
 import RxAppKit
-import NSObject_Rx
+
 
 class MainViewController: NSViewController {
     @ViewLoading @IBOutlet var outlineView: NSOutlineView

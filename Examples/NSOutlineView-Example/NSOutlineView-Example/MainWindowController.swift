@@ -9,7 +9,7 @@ import Cocoa
 import XcodeProj
 import RxSwift
 import RxCocoa
-import NSObject_Rx
+
 
 class MainWindowController: NSWindowController {
     

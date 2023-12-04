@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/ReactiveX/RxSwift",
-            .upToNextMajor(from: "6.5.0")
+            .upToNextMajor(from: "6.6.0")
         ),
         .package(
             url: "https://github.com/ra1028/DifferenceKit",

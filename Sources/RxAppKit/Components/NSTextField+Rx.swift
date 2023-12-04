@@ -2,8 +2,12 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-public extension Reactive where Base: NSTextField {
-    var delegate: DelegateProxy<NSTextField, NSTextFieldDelegate> {
+extension Reactive where Base: NSTextField {
+    public var delegate: DelegateProxy<NSTextField, NSTextFieldDelegate> {
         RxNSTextFieldDelegateProxy.proxy(for: base)
+    }
+
+    public var text: ControlProperty<String> {
+        controlProperty(forKeyPath: \.stringValue)
     }
 }
