@@ -66,11 +66,11 @@ public extension Reactive where Base: NSBrowser {
     }
 
     var clickedIndex: ControlEvent<ClickedIndex> {
-        controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
+        _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     var doubleClicked: ControlEvent<ClickedIndex> {
-        controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
+        _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     var path: ControlProperty<String> {
@@ -82,6 +82,6 @@ public extension Reactive where Base: NSBrowser {
     }
 
     var selectedIndexPath: ControlEvent<IndexPath?> {
-        controlEventForBaseAction { $0.selectionIndexPath }
+        _controlEventForBaseAction { $0.selectionIndexPath }
     }
 }

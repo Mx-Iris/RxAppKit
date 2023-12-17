@@ -7,11 +7,11 @@ extension String: Differentiable {}
 
 extension Reactive where Base: NSPopUpButton {
     public var selectedItem: ControlEvent<String?> {
-        controlEventForBaseAction { $0.selectedItem?.title }
+        _controlEventForBaseAction { $0.selectedItem?.title }
     }
 
     public var selectedIndex: ControlProperty<Int> {
-        controlProperty { base in
+        _controlProperty { base in
             base.indexOfSelectedItem
         } setter: { base, selectedIndex in
             base.selectItem(at: selectedIndex)

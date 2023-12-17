@@ -4,7 +4,7 @@ import RxCocoa
 
 extension Reactive where Base: NSButton {
     public func stateBoolValue(isMixedEqualTrue: Bool) -> ControlProperty<Bool> {
-        controlProperty { base in
+        _controlProperty(startWithProperty: true) { base in
             base.state.boolValue(isMixedEqualTrue: isMixedEqualTrue)
         } setter: { base, newValue in
             base.state = .init(boolValue: newValue)

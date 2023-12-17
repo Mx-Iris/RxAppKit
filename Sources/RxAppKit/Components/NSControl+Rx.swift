@@ -5,11 +5,17 @@ extension NSControl: HasTargeAction {}
 
 public extension Reactive where Base: NSControl {
     var click: ControlEvent<Void> {
-        controlEventForBaseAction { _ in () }
+        _controlEventForBaseAction { _ in () }
     }
     
     
-    
+    func click<Value>(with keyPath: KeyPath<Base, Value>, isStartWithDefaultValue: Bool = false) -> ControlEvent<Value> {
+        var source = _controlEventForBaseAction { $0[keyPath: keyPath] }.asObservable()
+        if isStartWithDefaultValue {
+            source = source.startWith(base[keyPath: keyPath])
+        }
+        return ControlEvent(events: source)
+    }
     
     /// Creates a `ControlProperty` that is triggered by target/action pattern value updates.
     ///

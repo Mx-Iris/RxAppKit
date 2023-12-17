@@ -7,7 +7,7 @@ extension Reactive where Base: NSTextField {
         RxNSTextFieldDelegateProxy.proxy(for: base)
     }
 
-    public var text: ControlProperty<String> {
-        controlProperty(forKeyPath: \.stringValue)
-    }
+//    public var text: ControlProperty<String> {
+//        _controlProperty(forKeyPath: \.stringValue)
+//    }
 }

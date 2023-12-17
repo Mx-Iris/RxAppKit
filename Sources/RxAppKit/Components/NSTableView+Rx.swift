@@ -56,15 +56,15 @@ extension Reactive where Base: NSTableView {
     }
 
     public var didDoubleClick: ControlEvent<TableIndex> {
-        controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
+        _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     public var didClick: ControlEvent<TableIndex> {
-        controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
+        _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     public var didSelect: ControlEvent<TableIndex> {
-        controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
+        _controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
     }
 
     public var didAddRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {

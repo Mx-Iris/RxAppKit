@@ -20,6 +20,6 @@ extension NSColorPanel: HasTargeAction {
 
 extension Reactive where Base: NSColorPanel {
     var color: ControlProperty<NSColor> {
-        controlProperty(forKeyPath: \.color)
+        _controlProperty(forKeyPath: \.color)
     }
 }

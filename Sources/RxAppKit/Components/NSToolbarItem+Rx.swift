@@ -13,6 +13,6 @@ extension NSToolbarItem: HasTargeAction {}
 
 public extension Reactive where Base: NSToolbarItem {
     var click: ControlEvent<Void> {
-        controlEventForBaseAction { _ in }
+        _controlEventForBaseAction { _ in }
     }
 }

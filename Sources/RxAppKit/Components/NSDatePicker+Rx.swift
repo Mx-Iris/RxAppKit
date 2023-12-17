@@ -4,6 +4,6 @@ import RxCocoa
 
 public extension Reactive where Base: NSDatePicker {
     var dateValue: ControlProperty<Date> {
-        return controlProperty(forKeyPath: \.dateValue)
+        return _controlProperty(forKeyPath: \.dateValue)
     }
 }

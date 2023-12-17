@@ -6,6 +6,6 @@ extension NSGestureRecognizer: HasTargeAction {}
 
 public extension Reactive where Base: NSGestureRecognizer {
     var event: ControlEvent<Base> {
-        controlEventForBaseAction { $0 }
+        _controlEventForBaseAction { $0 }
     }
 }

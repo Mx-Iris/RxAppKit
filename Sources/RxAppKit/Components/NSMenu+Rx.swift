@@ -43,9 +43,9 @@ extension Reactive where Base: NSMenu {
     }
 
     public func items<Element: RxMenuItemRepresentable, Source: ObservableType>(source: Source)
-        -> (_ itemProvider: @escaping (Element) -> Void)
+        -> (_ itemConfiguration: @escaping (NSMenuItem, Element) -> Void)
         -> Disposable where Source.Element == [Element] {
-        return { itemProvider in
+        return { itemConfiguration in
             source.subscribe(onNext: { [weak base] items in
                 guard let menu = base else { return }
                 menu.removeAllItems()
@@ -53,11 +53,8 @@ extension Reactive where Base: NSMenu {
                     let menuItem = NSMenuItem(title: item.title, action: #selector(proxy.run(_:)), keyEquivalent: item.keyEquivalent)
                     menuItem.target = proxy
                     menuItem.action = #selector(proxy.run(_:))
-                    let actionBlock: () -> Any = {
-                        itemProvider(item)
-                        return item
-                    }
-                    menuItem.representedObject = actionBlock
+                    menuItem.representedObject = item
+                    itemConfiguration(menuItem, item)
                     menu.addItem(menuItem)
                 }
             })
@@ -84,7 +81,7 @@ private class RxNSMenuProxy {
     let didSelectItem = PublishRelay<Any>()
 
     @objc func run(_ menuItem: NSMenuItem) {
-        let item = (menuItem.representedObject as! () -> Any)()
+        guard let item = menuItem.representedObject else { return }
         didSelectItem.accept(item)
     }
 }

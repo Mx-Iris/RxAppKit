@@ -4,7 +4,7 @@ import RxCocoa
 
 public extension Reactive where Base: NSSegmentedControl {
     var selectedSegmentIndex: ControlProperty<Int> {
-        return controlProperty(forKeyPath: \.selectedSegment)
+        return _controlProperty(forKeyPath: \.selectedSegment)
     }
 
     /// Reactive wrapper for `setEnabled(_:forSegment:)`
