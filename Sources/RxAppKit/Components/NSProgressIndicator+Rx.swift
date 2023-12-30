@@ -13,6 +13,7 @@ extension Reactive where Base: NSProgressIndicator {
     public var isAnimating: Binder<Bool> {
         .init(base) { target, active in
             target.isIndeterminate = true
+            target.doubleValue = 0
             if active {
                 target.startAnimation(nil)
             } else {

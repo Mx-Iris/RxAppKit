@@ -5,7 +5,6 @@ public protocol BrowserNodeType {
     associatedtype NodeType = Self
     var title: String { get }
     var children: [NodeType] { get }
-    var isLeaf: Bool { get }
 }
 
 public extension BrowserNodeType {

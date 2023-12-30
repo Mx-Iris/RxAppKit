@@ -4,22 +4,22 @@ import RxCocoa
 
 /// Items
 extension Reactive where Base: NSCollectionView {
-    public func items<Sequence: Swift.Sequence, Source: ObservableType>(_ source: Source)
-        -> (_ itemProvider: @escaping (NSCollectionView, IndexPath, Sequence.Element) -> NSCollectionViewItem)
-        -> Disposable where Source.Element == Sequence {
+    public func items<Item: Hashable, Source: ObservableType>(_ source: Source)
+        -> (_ itemProvider: @escaping (NSCollectionView, IndexPath, Item) -> NSCollectionViewItem)
+        -> Disposable where Source.Element == [Item] {
         { itemProvider in
-            let dataSource = RxNSCollectionViewArrayDataSource<Sequence>(itemProvider: itemProvider)
+            let dataSource = RxNSCollectionViewArrayDataSource<Item>(itemProvider: itemProvider)
             return self.items(dataSource: dataSource)(source)
         }
     }
 
-    public func items<Sequence: Swift.Sequence, Cell: NSCollectionViewItem, Source: ObservableType>(cellIdentifier: NSUserInterfaceItemIdentifier, cellType: Cell.Type = Cell.self)
+    public func items<Item: Hashable, Cell: NSCollectionViewItem, Source: ObservableType>(cellIdentifier: NSUserInterfaceItemIdentifier, cellType: Cell.Type = Cell.self)
         -> (_ source: Source)
-        -> (_ configureCell: @escaping (IndexPath, Sequence.Element, Cell) -> Void)
-        -> Disposable where Source.Element == Sequence {
+        -> (_ configureCell: @escaping (IndexPath, Item, Cell) -> Void)
+        -> Disposable where Source.Element == [Item] {
         { source in
             { configureCell in
-                let dataSource = RxNSCollectionViewArrayDataSource<Sequence> { cv, indexPath, item in
+                let dataSource = RxNSCollectionViewArrayDataSource<Item> { cv, indexPath, item in
                     let cell = cv.makeItem(withIdentifier: cellIdentifier, for: indexPath) as! Cell
                     configureCell(indexPath, item, cell)
                     return cell

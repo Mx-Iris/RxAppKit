@@ -11,7 +11,6 @@ public protocol OutlineNodeType {
     associatedtype NodeType = Self
     var parent: NodeType? { get }
     var children: [NodeType] { get }
-    var isExpandable: Bool { get }
 }
 
 public extension OutlineNodeType {

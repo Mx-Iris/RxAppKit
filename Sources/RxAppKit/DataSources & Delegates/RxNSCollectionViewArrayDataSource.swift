@@ -2,8 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-public class CollectionViewArrayDataSource<Sequence: Swift.Sequence>: CollectionViewDataSource<Sequence.Element> {
-    public typealias Item = Sequence.Element
+public class CollectionViewArrayDataSource<Item>: CollectionViewDataSource<Item> {
     public var items: [Item] = []
 
     public override func numberOfSections(in collectionView: NSCollectionView) -> Int {
@@ -19,14 +18,18 @@ public class CollectionViewArrayDataSource<Sequence: Swift.Sequence>: Collection
     }
 }
 
-public class RxNSCollectionViewArrayDataSource<Sequence: Swift.Sequence>: CollectionViewArrayDataSource<Sequence>, RxNSCollectionViewDataSourceType, SectionedViewDataSourceType {
-    public typealias Element = Sequence
+public class RxNSCollectionViewArrayDataSource<Item: Hashable>: CollectionViewArrayDataSource<Item>, RxNSCollectionViewDataSourceType, SectionedViewDataSourceType {
+    public typealias Element = [Item]
 
     public func collectionView(_ collectionView: NSCollectionView, observedEvent: Event<Element>) {
-        Binder<[Sequence.Element]>(self) { dataSource, items in
-            dataSource.items = items
-            collectionView.reloadData()
-        }.on(observedEvent.map(Array.init))
+        Binder(self) { (dataSource: RxNSCollectionViewArrayDataSource<Item>, newItems: [Item]) in
+            let oldItems = dataSource.items.map { AnyDifferentiable($0) }
+            let newItems = newItems.map { AnyDifferentiable($0) }
+            let changeset = StagedChangeset(source: oldItems, target: newItems)
+            collectionView.reload(using: changeset) {
+                dataSource.items = $0.map { $0.base }
+            }
+        }.on(observedEvent)
     }
     
     public func model(at indexPath: IndexPath) throws -> Any {
