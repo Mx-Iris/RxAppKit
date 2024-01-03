@@ -3,18 +3,18 @@ import RxSwift
 
 extension NSBrowser: HasDoubleAction {}
 
-public extension Reactive where Base: NSBrowser {
-    typealias ClickedIndex = (row: Int, column: Int)
+extension Reactive where Base: NSBrowser {
+    public typealias ClickedIndex = (row: Int, column: Int)
 
-    var delegate: DelegateProxy<NSBrowser, NSBrowserDelegate> {
+    public var delegate: DelegateProxy<NSBrowser, NSBrowserDelegate> {
         RxNSBrowserDelegateProxy.proxy(for: base)
     }
-    
-    func setDelegate(_ delegate: NSBrowserDelegate) -> Disposable {
+
+    public func setDelegate(_ delegate: NSBrowserDelegate) -> Disposable {
         RxNSBrowserDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    func rootNode<BrowserNode: BrowserNodeType, Cell: NSCell, Source: ObservableType>(cellClass: Cell.Type)
+    public func rootNode<BrowserNode: BrowserNodeType, Cell: NSCell, Source: ObservableType>(cellClass: Cell.Type)
         -> (_ source: Source)
         -> (_ configureCell: @escaping (_ node: BrowserNode, _ cell: Cell, _ row: Int, _ column: Int) -> Void)
         -> Disposable where Source.Element == BrowserNode {
@@ -26,7 +26,7 @@ public extension Reactive where Base: NSBrowser {
         }
     }
 
-    func rootNode<Adapter: RxNSBrowserDelegateType & NSBrowserDelegate, Source: ObservableType>(adapter: Adapter)
+    public func rootNode<Adapter: RxNSBrowserDelegateType & NSBrowserDelegate, Source: ObservableType>(adapter: Adapter)
         -> (_ source: Source)
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
@@ -65,15 +65,15 @@ public extension Reactive where Base: NSBrowser {
         }
     }
 
-    var clickedIndex: ControlEvent<ClickedIndex> {
+    public var clickedIndex: ControlEvent<ClickedIndex> {
         _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
-    var doubleClicked: ControlEvent<ClickedIndex> {
+    public var doubleClicked: ControlEvent<ClickedIndex> {
         _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
-    var path: ControlProperty<String> {
+    public var path: ControlProperty<String> {
         controlProperty(getter: {
             $0.path()
         }, setter: {
@@ -81,7 +81,7 @@ public extension Reactive where Base: NSBrowser {
         })
     }
 
-    var selectedIndexPath: ControlEvent<IndexPath?> {
+    public var selectedIndexPath: ControlEvent<IndexPath?> {
         _controlEventForBaseAction { $0.selectionIndexPath }
     }
 }

@@ -19,14 +19,15 @@ extension Reactive where Base: NSPopUpButton {
     }
 
     public var items: Binder<[String]> {
-        .init(base) { target, contents in
+        Binder(base) { (target: NSPopUpButton, items: [String]) in
             if target.itemTitles.isEmpty {
-                target.addItems(withTitles: contents)
+                items.forEach(target.addItem(withTitle:))
             } else {
-                let changeset = StagedChangeset(source: target.itemTitles, target: contents)
+
+                let changeset = StagedChangeset(source: target.itemTitles, target: .init(items))
                 changeset.forEach {
                     $0.elementInserted.forEach {
-                        target.insertItem(withTitle: contents[$0.element], at: $0.element)
+                        target.insertItem(withTitle: items[$0.element], at: $0.element)
                     }
 
                     $0.elementDeleted
@@ -35,12 +36,12 @@ extension Reactive where Base: NSPopUpButton {
 
                     $0.elementMoved.forEach {
                         target.removeItem(at: $0.source.element)
-                        target.insertItem(withTitle: contents[$0.target.element], at: $0.target.element)
+                        target.insertItem(withTitle: items[$0.target.element], at: $0.target.element)
                     }
 
                     $0.elementUpdated.forEach {
                         target.removeItem(at: $0.element)
-                        target.insertItem(withTitle: contents[$0.element], at: $0.element)
+                        target.insertItem(withTitle: items[$0.element], at: $0.element)
                     }
                 }
             }

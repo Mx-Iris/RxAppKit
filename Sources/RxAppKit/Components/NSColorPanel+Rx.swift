@@ -3,12 +3,12 @@ import RxSwift
 import RxCocoa
 
 extension NSColorPanel: HasTargeAction {
-    var target: AnyObject? {
+    public var target: AnyObject? {
         set { setTarget(newValue) }
         get { nil }
     }
     
-    var action: Selector? {
+    public var action: Selector? {
         set { setAction(newValue) }
         get { nil }
     }

@@ -5,7 +5,7 @@ import RxSwift
 import RxCocoa
 
 @objc
-protocol HasTargeAction: AnyObject {
+public protocol HasTargeAction: AnyObject where Self: NSObject {
     var target: AnyObject? { set get }
     var action: Selector? { set get }
 }
@@ -18,7 +18,7 @@ extension HasTargeAction where Self: AnyObject {
 private var rx_appkit_control_event_key: Void = ()
 private var rx_appkit_control_property_key: Void = ()
 
-extension Reactive where Base: NSObject, Base: HasTargeAction {
+extension Reactive where Base: HasTargeAction {
     func _controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
         MainScheduler.ensureRunningOnMainThread()
 

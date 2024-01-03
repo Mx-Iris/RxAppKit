@@ -1,6 +1,7 @@
 import AppKit
 import RxSwift
 import RxCocoa
+import DifferenceKit
 
 public class CollectionViewArrayDataSource<Item>: CollectionViewDataSource<Item> {
     public var items: [Item] = []

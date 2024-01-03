@@ -2,8 +2,8 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-public extension Reactive where Base: NSAlert {
-    func beginSheetModal(for window: NSWindow) -> ControlEvent<NSApplication.ModalResponse> {
+extension Reactive where Base: NSAlert {
+    public func beginSheetModal(for window: NSWindow) -> ControlEvent<NSApplication.ModalResponse> {
         let source = Observable.create { observer in
             base.beginSheetModal(for: window) { response in
                 observer.on(.next(response))

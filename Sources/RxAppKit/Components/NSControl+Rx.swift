@@ -3,7 +3,7 @@ import RxSwift
 
 extension NSControl: HasTargeAction {}
 
-public extension Reactive where Base: NSControl {
+public extension Reactive where Base: HasTargeAction {
     var click: ControlEvent<Void> {
         _controlEventForBaseAction { _ in () }
     }
