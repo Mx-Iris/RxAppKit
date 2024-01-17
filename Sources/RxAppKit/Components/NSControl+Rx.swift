@@ -17,6 +17,10 @@ public extension Reactive where Base: HasTargeAction {
         return ControlEvent(events: source)
     }
     
+    var clickWithSelf: ControlEvent<Base> {
+        _controlEventForBaseAction { $0 }
+    }
+    
     /// Creates a `ControlProperty` that is triggered by target/action pattern value updates.
     ///
     /// - parameter getter: Property value getter.
