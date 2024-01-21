@@ -10,11 +10,11 @@ import RxSwift
 import RxCocoa
 
 extension Reactive where Base: NSWindowController {
-    var windowWillLoad: ControlEvent<Void> {
+    public var windowWillLoad: ControlEvent<Void> {
         controlEventForSelector(#selector(Base.windowWillLoad))
     }
 
-    var windowDidLoad: ControlEvent<Void> {
+    public var windowDidLoad: ControlEvent<Void> {
         controlEventForSelector(#selector(Base.windowDidLoad))
     }
 }

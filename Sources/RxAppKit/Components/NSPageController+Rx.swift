@@ -2,38 +2,38 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-public extension Reactive where Base: NSPageController {
-    var delegate: DelegateProxy<NSPageController, NSPageControllerDelegate> {
+extension Reactive where Base: NSPageController {
+    public var delegate: DelegateProxy<NSPageController, NSPageControllerDelegate> {
         RxNSPageControllDelegateProxy.proxy(for: base)
     }
 
-    func setDelegate(_ delegate: NSPageControllerDelegate) -> Disposable {
+    public func setDelegate(_ delegate: NSPageControllerDelegate) -> Disposable {
         RxNSPageControllDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    var prepare: ControlEvent<NSViewController> {
+    public var prepare: ControlEvent<NSViewController> {
         let source = delegate.methodInvoked(#selector(NSPageControllerDelegate.pageController(_:prepare:with:))).map { a in
             try castOrThrow(NSViewController.self, a[1])
         }
         return ControlEvent(events: source)
     }
 
-    var didTransition: ControlEvent<Void> {
+    public var didTransition: ControlEvent<Void> {
         let source = delegate.methodInvoked(#selector(NSPageControllerDelegate.pageController(_:didTransitionTo:))).map { _ in }
         return ControlEvent(events: source)
     }
 
-    var willStartLiveTransition: ControlEvent<Void> {
+    public var willStartLiveTransition: ControlEvent<Void> {
         let source = delegate.methodInvoked(#selector(NSPageControllerDelegate.pageControllerWillStartLiveTransition(_:))).map { _ in }
         return ControlEvent(events: source)
     }
 
-    var didEndLiveTransition: ControlEvent<Void> {
+    public var didEndLiveTransition: ControlEvent<Void> {
         let source = delegate.methodInvoked(#selector(NSPageControllerDelegate.pageControllerDidEndLiveTransition(_:))).map { _ in }
         return ControlEvent(events: source)
     }
 
-    func items<Item: PageControllerItem, Source: ObservableType>(_ source: Source)
+    public func items<Item: PageControllerItem, Source: ObservableType>(_ source: Source)
         -> (_ itemProvider: @escaping (NSPageController, String, Item) -> NSViewController)
         -> Disposable where Source.Element == [Item] {
         return { itemProvider in
@@ -42,7 +42,7 @@ public extension Reactive where Base: NSPageController {
         }
     }
 
-    func items<Adapter: RxNSPageControllerDelegateType & NSPageControllerDelegate, Source: ObservableType>(adapter: Adapter)
+    public func items<Adapter: RxNSPageControllerDelegateType & NSPageControllerDelegate, Source: ObservableType>(adapter: Adapter)
         -> (_ source: Source)
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
@@ -75,7 +75,7 @@ public extension Reactive where Base: NSPageController {
         }
     }
 
-    var animateSelectedIndex: Binder<Int> {
+    public var animateSelectedIndex: Binder<Int> {
         .init(base) { target, selectedIndex in
             NSAnimationContext.runAnimationGroup { _ in
                 self.base.animator().selectedIndex = selectedIndex

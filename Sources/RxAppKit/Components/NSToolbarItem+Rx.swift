@@ -11,8 +11,8 @@ import RxCocoa
 
 extension NSToolbarItem: HasTargeAction {}
 
-public extension Reactive where Base: NSToolbarItem {
-    var click: ControlEvent<Void> {
+extension Reactive where Base: NSToolbarItem {
+    public var click: ControlEvent<Void> {
         _controlEventForBaseAction { _ in }
     }
 }

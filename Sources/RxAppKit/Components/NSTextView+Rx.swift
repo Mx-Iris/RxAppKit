@@ -37,15 +37,15 @@ extension Reactive where Base: NSTextView {
         return ControlProperty(values: source, valueSink: bindingObserver)
     }
 
-    var didBeginEditing: ControlEvent<Void> {
+    public var didBeginEditing: ControlEvent<Void> {
         controlEventForNotification(Base.didBeginEditingNotification, object: base)
     }
 
-    var didEndEditing: ControlEvent<Void> {
+    public var didEndEditing: ControlEvent<Void> {
         controlEventForNotification(Base.didEndEditingNotification, object: base)
     }
 
-    var didChange: ControlEvent<Void> {
+    public var didChange: ControlEvent<Void> {
         controlEventForNotification(Base.didChangeNotification, object: base)
     }
 }

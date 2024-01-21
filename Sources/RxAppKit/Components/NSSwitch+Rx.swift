@@ -3,9 +3,9 @@ import RxSwift
 import RxCocoa
 
 @available(macOS 10.15, *)
-public extension Reactive where Base: NSSwitch {
+extension Reactive where Base: NSSwitch {
     /// Reactive wrapper for `state` property`.
-    var state: ControlProperty<NSControl.StateValue> {
+    public var state: ControlProperty<NSControl.StateValue> {
         return base.rx.controlProperty(
             getter: { control in
                 control.state

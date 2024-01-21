@@ -43,21 +43,15 @@ class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewD
     }
 
     typealias ViewForItem = (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?
-
     typealias RowForItem = (NSOutlineView, OutlineNode) -> NSTableRowView?
-
     typealias ValidateDrop = (NSOutlineView, ProposedDrop) -> ProposedDrop?
-
     typealias AcceptDrop = (NSOutlineView, ProposedDrop) -> Bool
 
     public internal(set) var nodes: [OutlineNode] = []
 
     var viewForItem: ViewForItem
-
     var rowForItem: RowForItem
-
     var validateDrop: ValidateDrop?
-
     var acceptDrop: AcceptDrop?
 
     init(viewForItem: @escaping ViewForItem, rowForItem: @escaping RowForItem = { _, _ in nil }) {

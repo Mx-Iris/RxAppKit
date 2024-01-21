@@ -11,6 +11,7 @@ import RxCocoa
 
 open class RxNSPageControllerAdapter<Item: PageControllerItem>: PageControllerAdapter<Item>, RxNSPageControllerDelegateType {
     public typealias Element = [Item]
+    
     public func pageController(_ pageController: NSPageController, observedEvent: Event<Element>) {
         Binder(self) { adapter, newItems in
             guard !newItems.isEmpty else { return }

@@ -1,10 +1,3 @@
-//
-//  NSActivityIndicatorView+Rx.swift
-//  
-//
-//  Created by JH on 2023/6/6.
-//
-
 import AppKit
 import RxSwift
 import RxCocoa
@@ -21,6 +14,7 @@ extension Reactive where Base: NSProgressIndicator {
             }
         }
     }
+
     public func progressValue<Value: BinaryFloatingPoint>() -> Binder<Value> {
         .init(base) { target, progressValue in
             target.isIndeterminate = false

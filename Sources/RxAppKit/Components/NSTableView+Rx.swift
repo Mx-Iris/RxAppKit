@@ -10,8 +10,8 @@ public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
 public typealias TableIndex = (row: Int, column: Int)
 
 extension Reactive where Base: NSTableView {
-    public typealias CellProvider<Item: Hashable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
-    public typealias RowProvider<Item: Hashable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
+    public typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
+    public typealias RowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
     public var tableViewDataSource: DelegateProxy<NSTableView, NSTableViewDataSource> {
         RxNSTableViewDataSourceProxy.proxy(for: base)
@@ -25,7 +25,7 @@ extension Reactive where Base: NSTableView {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    public func items<Element: Hashable, Source: ObservableType>(_ source: Source)
+    public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
         -> (_ cellProvider: @escaping CellProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider in
@@ -33,11 +33,11 @@ extension Reactive where Base: NSTableView {
         }
     }
 
-    public func items<Element: Hashable, Source: ObservableType>(_ source: Source)
+    public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
         -> (_ cellProvider: @escaping CellProvider<Element>, _ rowProvider: @escaping RowProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider, rowProvider in
-            let adapter = RxNSTableViewArrayAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)
+            let adapter = RxNSTableViewArrayReloadAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)
             return self.items(adapter: adapter)(source)
         }
     }

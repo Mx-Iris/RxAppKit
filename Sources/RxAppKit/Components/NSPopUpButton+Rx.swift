@@ -23,7 +23,6 @@ extension Reactive where Base: NSPopUpButton {
             if target.itemTitles.isEmpty {
                 items.forEach(target.addItem(withTitle:))
             } else {
-
                 let changeset = StagedChangeset(source: target.itemTitles, target: .init(items))
                 changeset.forEach {
                     $0.elementInserted.forEach {

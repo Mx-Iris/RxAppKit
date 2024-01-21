@@ -17,15 +17,11 @@ open class BrowserAdapter<BrowserNode: BrowserNodeType, Cell: NSCell>: NSObject,
     public internal(set) var rootNode: BrowserNode?
 
     public typealias ConfigureCell = (BrowserNode, Cell, Int, Int) -> Void
-
     public typealias HeaderForItem = (NSBrowser, BrowserNode) -> NSViewController?
-
     public typealias PreviewForLeafItem = (NSBrowser, BrowserNode) -> NSViewController?
 
     open var configureCell: ConfigureCell
-
     open var headerForItem: HeaderForItem?
-
     open var previewForLeafItem: PreviewForLeafItem?
 
     public init(configureCell: @escaping ConfigureCell) {

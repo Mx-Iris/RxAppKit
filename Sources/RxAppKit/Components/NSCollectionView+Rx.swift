@@ -1,10 +1,11 @@
 import AppKit
 import RxSwift
 import RxCocoa
+import DifferenceKit
 
 /// Items
 extension Reactive where Base: NSCollectionView {
-    public func items<Item: Hashable, Source: ObservableType>(_ source: Source)
+    public func items<Item: Differentiable, Source: ObservableType>(_ source: Source)
         -> (_ itemProvider: @escaping (NSCollectionView, IndexPath, Item) -> NSCollectionViewItem)
         -> Disposable where Source.Element == [Item] {
         { itemProvider in
@@ -13,7 +14,7 @@ extension Reactive where Base: NSCollectionView {
         }
     }
 
-    public func items<Item: Hashable, Cell: NSCollectionViewItem, Source: ObservableType>(cellIdentifier: NSUserInterfaceItemIdentifier, cellType: Cell.Type = Cell.self)
+    public func items<Item: Differentiable, Cell: NSCollectionViewItem, Source: ObservableType>(cellIdentifier: NSUserInterfaceItemIdentifier, cellType: Cell.Type = Cell.self)
         -> (_ source: Source)
         -> (_ configureCell: @escaping (IndexPath, Item, Cell) -> Void)
         -> Disposable where Source.Element == [Item] {
