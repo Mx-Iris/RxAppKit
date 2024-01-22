@@ -67,59 +67,12 @@ extension Reactive where Base: NSToolbar {
     }
     
     public func itemAction<T>(_ itemType: T.Type) -> ControlEvent<T> {
-        let source = proxy.didSelectItem.compactMap {
-            if let item = $1 as? T {
-                return item
-            } else {
-                return nil
-            }
-        }
+        let source = itemAction(itemType).map { $0.item }
         return ControlEvent(events: source)
     }
 }
 
-class RxNSToolbarProxy: NSObject, NSToolbarItemValidation {
-    private unowned let toolbar: NSToolbar
 
-    init(toolbar: NSToolbar) {
-        self.toolbar = toolbar
-        super.init()
-    }
 
-    let didSelectItem = PublishRelay<(NSToolbarItem, Any?)>()
-
-    @objc func run(_ toolbarItem: NSToolbarItem) {
-        didSelectItem.accept((toolbarItem, toolbarItem.representedObject))
-    }
-    
-    func validateToolbarItem(_ item: NSToolbarItem) -> Bool {
-        (item.representedObject as? RxToolbarItemRepresentable)?.shouldEnable ?? true
-    }
-}
-
-extension NSToolbarItem {
-    
-    class RepresentedObjectWrapper: NSObject {
-        var wrappedValue: Any?
-        init(wrappedValue: Any? = nil) {
-            self.wrappedValue = wrappedValue
-        }
-    }
-    
-    private static var representedObjectKey: Void = ()
-    
-    var representedObject: Any? {
-        set {
-            let wrapper = RepresentedObjectWrapper(wrappedValue: newValue)
-            objc_setAssociatedObject(self, &Self.representedObjectKey, wrapper, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
-        get {
-            guard let wrapper = objc_getAssociatedObject(self, &Self.representedObjectKey) as? RepresentedObjectWrapper else {
-                return nil
-            }
-            return wrapper.wrappedValue
-        }
-    }
-}
 
 #endif
