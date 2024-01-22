@@ -38,7 +38,7 @@ class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, Del
         register { RxNSBrowserDelegateProxy(browser: $0) }
     }
 
-    private var _requiredMethodsDelegate: NSBrowserDelegate? = broswerDelegateNotSet
+    private weak var _requiredMethodsDelegate: NSBrowserDelegate? = broswerDelegateNotSet
 
     public func rootItem(for browser: NSBrowser) -> Any? {
         _requiredMethodsDelegate?.rootItem?(for: browser)

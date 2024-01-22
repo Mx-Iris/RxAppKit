@@ -10,5 +10,10 @@ extension Reactive where Base: NSButton {
             base.state = .init(boolValue: newValue)
         }
     }
-}
 
+    public var buttonType: Binder<NSButton.ButtonType> {
+        Binder(base) { target, newValue in
+            target.setButtonType(newValue)
+        }
+    }
+}
