@@ -8,7 +8,7 @@ extension NSToolbar: HasDelegate {
     public typealias Delegate = NSToolbarDelegate
 }
 
-class RxNSToolbarDelegateProxy: DelegateProxy<NSToolbar, NSToolbarDelegate>, DelegateProxyType, NSToolbarDelegate {
+class RxNSToolbarDelegateProxy: DelegateProxy<NSToolbar, NSToolbarDelegate>, RequiredMethodDelegateProxyType, NSToolbarDelegate {
     public private(set) weak var toolbar: NSToolbar?
     
     public init(toolbar: ParentObject) {
@@ -20,30 +20,22 @@ class RxNSToolbarDelegateProxy: DelegateProxy<NSToolbar, NSToolbarDelegate>, Del
         register { RxNSToolbarDelegateProxy(toolbar: $0) }
     }
     
-    private weak var _requiredMethodsDelegate: NSToolbarDelegate?
-    
-    func setRequiredMethodsDelegate(_ requiredMethodsDelegate: NSToolbarDelegate) -> Disposable {
-        _requiredMethodsDelegate = requiredMethodsDelegate
-        return Disposables.create { [weak self] in
-            guard let self = self else { return }
-            _requiredMethodsDelegate = nil
-        }
-    }
+    let _requiredMethodsDelegate: ObjectContainer<NSToolbarDelegate> = .init()
     
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
-        _requiredMethodsDelegate?.toolbar?(toolbar, itemForItemIdentifier: itemIdentifier, willBeInsertedIntoToolbar: flag)
+        _requiredMethodsDelegate.object?.toolbar?(toolbar, itemForItemIdentifier: itemIdentifier, willBeInsertedIntoToolbar: flag)
     }
     
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        _requiredMethodsDelegate?.toolbarDefaultItemIdentifiers?(toolbar) ?? []
+        _requiredMethodsDelegate.object?.toolbarDefaultItemIdentifiers?(toolbar) ?? []
     }
     
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        _requiredMethodsDelegate?.toolbarAllowedItemIdentifiers?(toolbar) ?? []
+        _requiredMethodsDelegate.object?.toolbarAllowedItemIdentifiers?(toolbar) ?? []
     }
     
     func toolbarSelectableItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        _requiredMethodsDelegate?.toolbarSelectableItemIdentifiers?(toolbar) ?? []
+        _requiredMethodsDelegate.object?.toolbarSelectableItemIdentifiers?(toolbar) ?? []
     }
     
 }

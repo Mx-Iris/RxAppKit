@@ -22,39 +22,21 @@ extension Reactive where Base: NSToolbar {
         -> (_ source: Source)
         -> Disposable where Adpater.Element == Source.Element {
         return { source in
-            let adapterSubscription = RxNSToolbarDelegateProxy.proxy(for: base).setRequiredMethodsDelegate(adapter)
-            let subscription = source.asObservable()
-                .observe(on: MainScheduler.instance)
-                .catch { error in
-                    bindingError(error)
-                    return Observable.empty()
-                }
-                .concat(Observable.never())
-                .take(until: base.rx.deallocated)
-                .subscribe { [weak object = base] event in
-                    guard let toolbar = object else { return }
-                    adapter.toolbar(toolbar, observedEvent: event)
-                    switch event {
-                    case let .error(error):
-                        bindingError(error)
-                        adapterSubscription.dispose()
-                    case .completed:
-                        adapterSubscription.dispose()
-                    default:
-                        break
-                    }
-                }
+            let adapterSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak object = base] (_: RxNSToolbarDelegateProxy, event) in
+                guard let object else { return }
+                adapter.toolbar(object, observedEvent: event)
+            }
+
             return Disposables.create {
                 adapterSubscription.dispose()
-                subscription.dispose()
             }
         }
     }
-    
+
     var proxy: RxNSToolbarProxy {
         associatedValue { .init(toolbar: $0) }
     }
-    
+
     public func itemAction<T>(_ itemType: T.Type) -> ControlEvent<(toolbarItem: NSToolbarItem, item: T)> {
         let source = proxy.didSelectItem.compactMap {
             if let item = $1 as? T {
@@ -65,14 +47,11 @@ extension Reactive where Base: NSToolbar {
         }
         return ControlEvent(events: source)
     }
-    
+
     public func itemAction<T>(_ itemType: T.Type) -> ControlEvent<T> {
-        let source = itemAction(itemType).map { $0.item }
+        let source = itemAction(itemType).map(\.item)
         return ControlEvent(events: source)
     }
 }
-
-
-
 
 #endif

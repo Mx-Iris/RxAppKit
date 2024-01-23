@@ -6,7 +6,7 @@ extension NSTableView: HasDelegate {
     public typealias Delegate = NSTableViewDelegate
 }
 
-class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate>, DelegateProxyType, NSTableViewDelegate {
+class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate>, RequiredMethodDelegateProxyType, NSTableViewDelegate {
     public private(set) weak var tableView: NSTableView?
 
     public init(tableView: ParentObject) {
@@ -18,21 +18,13 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
         register { RxNSTableViewDelegateProxy(tableView: $0) }
     }
 
-    private weak var _requiredMethodsDelegate: NSTableViewDelegate?
-
-    func setRequiredMethodsDelegate(_ requiredMethodsDelegate: NSTableViewDelegate) -> Disposable {
-        _requiredMethodsDelegate = requiredMethodsDelegate
-        return Disposables.create { [weak self] in
-            guard let self = self else { return }
-            self._requiredMethodsDelegate = nil
-        }
-    }
+    let _requiredMethodsDelegate: ObjectContainer<NSTableViewDelegate> = .init()
 
     public func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        _requiredMethodsDelegate?.tableView?(tableView, viewFor: tableColumn, row: row)
+        _requiredMethodsDelegate.object?.tableView?(tableView, viewFor: tableColumn, row: row)
     }
 
     public func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-        _requiredMethodsDelegate?.tableView?(tableView, rowViewForRow: row)
+        _requiredMethodsDelegate.object?.tableView?(tableView, rowViewForRow: row)
     }
 }

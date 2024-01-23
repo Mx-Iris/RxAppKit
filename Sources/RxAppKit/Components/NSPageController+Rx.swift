@@ -46,31 +46,14 @@ extension Reactive where Base: NSPageController {
         -> (_ source: Source)
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
-            let adapterSubscription = RxNSPageControllDelegateProxy.proxy(for: base).setRequiredMethodsDelegate(adapter)
-            let subscription = source.asObservable()
-                .observe(on: MainScheduler.instance)
-                .catch { error in
-                    bindingError(error)
-                    return .empty()
-                }
-                .concat(Observable.never())
-                .take(until: base.rx.deallocated)
-                .subscribe { [weak object = base] event in
-                    guard let pageController = object else { return }
-                    adapter.pageController(pageController, observedEvent: event)
-                    switch event {
-                    case let .error(error):
-                        bindingError(error)
-                        adapterSubscription.dispose()
-                    case .completed:
-                        adapterSubscription.dispose()
-                    default:
-                        break
-                    }
-                }
+            let adapterSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak object = base] (_: RxNSPageControllDelegateProxy, event) in
+                guard let object else { return }
+                adapter.pageController(object, observedEvent: event)
+            }
+
+
             return Disposables.create {
                 adapterSubscription.dispose()
-                subscription.dispose()
             }
         }
     }

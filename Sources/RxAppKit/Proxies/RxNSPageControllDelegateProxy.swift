@@ -23,7 +23,7 @@ private class PageControllDelegateNotSet: NSObject, NSPageControllerDelegate {
 
 private let pageControllerDelegateNotSet = PageControllDelegateNotSet()
 
-class RxNSPageControllDelegateProxy: DelegateProxy<NSPageController, NSPageControllerDelegate>, DelegateProxyType, NSPageControllerDelegate {
+class RxNSPageControllDelegateProxy: DelegateProxy<NSPageController, NSPageControllerDelegate>, RequiredMethodDelegateProxyType, NSPageControllerDelegate {
     public private(set) weak var pageController: NSPageController?
 
     init(pageControll: NSPageController) {
@@ -35,21 +35,14 @@ class RxNSPageControllDelegateProxy: DelegateProxy<NSPageController, NSPageContr
         register { RxNSPageControllDelegateProxy(pageControll: $0) }
     }
     
-    private var _requiredMethodsDelegate: NSPageControllerDelegate?
+    let _requiredMethodsDelegate: ObjectContainer<NSPageControllerDelegate> = .init()
     
     func pageController(_ pageController: NSPageController, identifierFor object: Any) -> NSPageController.ObjectIdentifier {
-        _requiredMethodsDelegate?.pageController?(pageController, identifierFor: object) ?? pageControllerDelegateNotSet.pageController(pageController, identifierFor: object)
+        _requiredMethodsDelegate.object?.pageController?(pageController, identifierFor: object) ?? pageControllerDelegateNotSet.pageController(pageController, identifierFor: object)
     }
     
     func pageController(_ pageController: NSPageController, viewControllerForIdentifier identifier: NSPageController.ObjectIdentifier) -> NSViewController {
-        _requiredMethodsDelegate?.pageController?(pageController, viewControllerForIdentifier: identifier) ?? pageControllerDelegateNotSet.pageController(pageController, viewControllerForIdentifier: identifier)
+        _requiredMethodsDelegate.object?.pageController?(pageController, viewControllerForIdentifier: identifier) ?? pageControllerDelegateNotSet.pageController(pageController, viewControllerForIdentifier: identifier)
     }
     
-    func setRequiredMethodsDelegate(_ requiredMethodsDelegate: NSPageControllerDelegate) -> Disposable {
-        _requiredMethodsDelegate = requiredMethodsDelegate
-        return Disposables.create { [weak self] in
-            guard let self = self else { return }
-            _requiredMethodsDelegate = nil
-        }
-    }
 }

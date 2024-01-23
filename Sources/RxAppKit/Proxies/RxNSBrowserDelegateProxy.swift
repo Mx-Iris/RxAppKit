@@ -26,7 +26,8 @@ private class BroswerDelegateNotSet: NSObject, NSBrowserDelegate {
 
 private let broswerDelegateNotSet = BroswerDelegateNotSet()
 
-class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, DelegateProxyType, NSBrowserDelegate {
+class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, RequiredMethodDelegateProxyType, NSBrowserDelegate {
+    
     public private(set) weak var browser: NSBrowser?
 
     public init(browser: NSBrowser) {
@@ -38,42 +39,29 @@ class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, Del
         register { RxNSBrowserDelegateProxy(browser: $0) }
     }
 
-    private weak var _requiredMethodsDelegate: NSBrowserDelegate? = broswerDelegateNotSet
+    public let _requiredMethodsDelegate = ObjectContainer<NSBrowserDelegate>()
 
     public func rootItem(for browser: NSBrowser) -> Any? {
-        _requiredMethodsDelegate?.rootItem?(for: browser)
+        _requiredMethodsDelegate.object?.rootItem?(for: browser)
     }
 
     public func browser(_ browser: NSBrowser, numberOfChildrenOfItem item: Any?) -> Int {
-        _requiredMethodsDelegate?.browser?(browser, numberOfChildrenOfItem: item) ?? broswerDelegateNotSet.browser(browser, numberOfChildrenOfItem: item)
+        _requiredMethodsDelegate.object?.browser?(browser, numberOfChildrenOfItem: item) ?? broswerDelegateNotSet.browser(browser, numberOfChildrenOfItem: item)
     }
 
     public func browser(_ browser: NSBrowser, child index: Int, ofItem item: Any?) -> Any {
-        _requiredMethodsDelegate?.browser?(browser, child: index, ofItem: item) ?? broswerDelegateNotSet.browser(browser, child: index, ofItem: item)
+        _requiredMethodsDelegate.object?.browser?(browser, child: index, ofItem: item) ?? broswerDelegateNotSet.browser(browser, child: index, ofItem: item)
     }
 
     public func browser(_ browser: NSBrowser, isLeafItem item: Any?) -> Bool {
-        _requiredMethodsDelegate?.browser?(browser, isLeafItem: item) ?? broswerDelegateNotSet.browser(browser, isLeafItem: item)
+        _requiredMethodsDelegate.object?.browser?(browser, isLeafItem: item) ?? broswerDelegateNotSet.browser(browser, isLeafItem: item)
     }
 
     public func browser(_ browser: NSBrowser, objectValueForItem item: Any?) -> Any? {
-        _requiredMethodsDelegate?.browser?(browser, objectValueForItem: item) ?? broswerDelegateNotSet.browser(browser, objectValueForItem: item)
+        _requiredMethodsDelegate.object?.browser?(browser, objectValueForItem: item) ?? broswerDelegateNotSet.browser(browser, objectValueForItem: item)
     }
 
     public func browser(_ sender: NSBrowser, willDisplayCell cell: Any, atRow row: Int, column: Int) {
-        _requiredMethodsDelegate?.browser?(sender, willDisplayCell: cell, atRow: row, column: column)
-    }
-
-//    open override func setForwardToDelegate(_ delegate: DelegateProxy<NSBrowser, NSBrowserDelegate>.Delegate?, retainDelegate: Bool) {
-//        _requiredMethodsDelegate = delegate
-//        super.setForwardToDelegate(delegate, retainDelegate: retainDelegate)
-//    }
-
-    func setRequiredMethodsDelegate(_ requiredMethodsDelegate: NSBrowserDelegate) -> Disposable {
-        _requiredMethodsDelegate = requiredMethodsDelegate
-        return Disposables.create { [weak self] in
-            guard let self = self else { return }
-            _requiredMethodsDelegate = nil
-        }
+        _requiredMethodsDelegate.object?.browser?(sender, willDisplayCell: cell, atRow: row, column: column)
     }
 }

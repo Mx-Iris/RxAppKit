@@ -30,37 +30,14 @@ extension Reactive where Base: NSBrowser {
         -> (_ source: Source)
         -> Disposable where Adapter.Element == Source.Element {
         return { source in
-            let adapterSubscription = RxNSBrowserDelegateProxy.proxy(for: base).setRequiredMethodsDelegate(adapter)
+            let adapterSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak browser = base] (_: RxNSBrowserDelegateProxy, event) in
+                guard let browser else { return }
+                adapter.browser(browser, observedEvent: event)
+            }
 
-            base.layoutSubtreeIfNeeded()
 
-            let subscription = source.asObservable()
-                .observe(on: MainScheduler.instance)
-                .catch { error in
-                    bindingError(error)
-                    return Observable.empty()
-                }
-                // source can never end, otherwise it would release the subscriber, and deallocate the data source
-                .concat(Observable.never())
-                .take(until: base.rx.deallocated)
-                .subscribe { [weak object = base] event in
-                    guard let broswer = object else { return }
-                    adapter.browser(broswer, observedEvent: event)
-                    switch event {
-                    case let .error(error):
-                        bindingError(error)
-                        adapterSubscription.dispose()
-                    case .completed:
-                        adapterSubscription.dispose()
-                    default:
-                        break
-                    }
-                }
-
-            return Disposables.create { [weak object = base] in
+            return Disposables.create {
                 adapterSubscription.dispose()
-                subscription.dispose()
-                object?.layoutSubtreeIfNeeded()
             }
         }
     }
