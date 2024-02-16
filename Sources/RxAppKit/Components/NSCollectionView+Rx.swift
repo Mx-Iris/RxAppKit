@@ -13,15 +13,15 @@ extension Reactive where Base: NSCollectionView {
             return self.items(dataSource: dataSource)(source)
         }
     }
-
-    public func items<Item: Differentiable, Cell: NSCollectionViewItem, Source: ObservableType>(cellIdentifier: NSUserInterfaceItemIdentifier, cellType: Cell.Type = Cell.self)
+    
+    public func items<Item: Differentiable, CollectionViewItem: NSCollectionViewItem, Source: ObservableType>(cellIdentifier: NSUserInterfaceItemIdentifier, cellType: CollectionViewItem.Type = CollectionViewItem.self)
         -> (_ source: Source)
-        -> (_ configureCell: @escaping (IndexPath, Item, Cell) -> Void)
+        -> (_ configureCell: @escaping (IndexPath, Item, CollectionViewItem) -> Void)
         -> Disposable where Source.Element == [Item] {
         { source in
             { configureCell in
                 let dataSource = RxNSCollectionViewArrayDataSource<Item> { cv, indexPath, item in
-                    let cell = cv.makeItem(withIdentifier: cellIdentifier, for: indexPath) as! Cell
+                    let cell = cv.makeItem(withIdentifier: cellIdentifier, for: indexPath) as! CollectionViewItem
                     configureCell(indexPath, item, cell)
                     return cell
                 }

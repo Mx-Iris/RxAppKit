@@ -3,8 +3,8 @@ import RxSwift
 import RxCocoa
 import DifferenceKit
 
-class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Differentiable>: OutlineViewAdapter<OutlineNode>, RxNSOutlineViewDataSourceType where OutlineNode.NodeType == OutlineNode {
-    typealias Element = [OutlineNode]
+open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Differentiable>: OutlineViewAdapter<OutlineNode>, RxNSOutlineViewDataSourceType where OutlineNode.NodeType == OutlineNode {
+    public typealias Element = [OutlineNode]
 
     private struct IndexedNode: Hashable, Differentiable {
         var node: OutlineNode
@@ -13,7 +13,7 @@ class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Different
 
     private var flattenNode: [IndexedNode] = []
 
-    func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
+    open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSOutlineViewAdapter<OutlineNode>, newNodes) in
             if dataSource.nodes.isEmpty {
                 dataSource.nodes = newNodes

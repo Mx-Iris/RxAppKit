@@ -1,22 +1,26 @@
 import AppKit
 
+private class EmptySupplementaryView: NSView, NSCollectionViewElement {}
+
+
 open class CollectionViewSectionedDataSource<Section: DifferentiableSection>: NSObject, NSCollectionViewDataSource, SectionedViewDataSourceType {
     public typealias Item = Section.Collection.Element
     public typealias Section = Section
-    public typealias ItemProvider = (NSCollectionView, IndexPath, Item) -> NSCollectionViewItem
-    public typealias SupplementaryViewProvider = (NSCollectionView, String, IndexPath, Section) -> (NSView)
+    public typealias ItemProvider = (_ collectionView: NSCollectionView, _ indexPath: IndexPath, _ item: Item) -> NSCollectionViewItem
+    public typealias SupplementaryViewProvider = (_ collectionView: NSCollectionView, _ supplementaryElementOfKind: String, _ indexPath: IndexPath, _ section: Section) -> (NSView & NSCollectionViewElement)
     public typealias SectionModelSnapshot = ArraySection<Section, Item>
 
     open var itemProvider: ItemProvider
     open var supplementaryViewProvider: SupplementaryViewProvider
+    
     private var _sectionModels: [SectionModelSnapshot] = []
     
     public init(
         itemProvider: @escaping ItemProvider,
-        supplementaryViewProvider: @escaping SupplementaryViewProvider = { _, _, _, _ in NSView() }
+        supplementaryViewProvider: SupplementaryViewProvider?
     ) {
         self.itemProvider = itemProvider
-        self.supplementaryViewProvider = supplementaryViewProvider
+        self.supplementaryViewProvider = supplementaryViewProvider ?? { _, _, _, _ in EmptySupplementaryView() }
     }
 
     open var sectionModels: [Section] {
@@ -64,7 +68,7 @@ open class CollectionViewSectionedDataSource<Section: DifferentiableSection>: NS
         return itemProvider(collectionView, indexPath, self[indexPath])
     }
     
-    public func collectionView(_ collectionView: NSCollectionView, viewForSupplementaryElementOfKind kind: NSCollectionView.SupplementaryElementKind, at indexPath: IndexPath) -> NSView {
+    open func collectionView(_ collectionView: NSCollectionView, viewForSupplementaryElementOfKind kind: NSCollectionView.SupplementaryElementKind, at indexPath: IndexPath) -> NSView {
         return supplementaryViewProvider(collectionView, kind, indexPath, self[indexPath.section])
     }
 

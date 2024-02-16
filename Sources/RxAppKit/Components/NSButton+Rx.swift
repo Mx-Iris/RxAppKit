@@ -16,10 +16,12 @@ extension Reactive where Base: NSButton {
             target.setButtonType(newValue)
         }
     }
-    
-    public var isCheck: Binder<Bool> {
-        Binder(base) { target, isCheck in
-            target.state = isCheck ? .on : .off
+
+    public var isCheck: ControlProperty<Bool> {
+        _controlProperty(startWithProperty: true) {
+            $0.state == .on
+        } setter: {
+            $0.state = $1 ? .on : .off
         }
     }
 }

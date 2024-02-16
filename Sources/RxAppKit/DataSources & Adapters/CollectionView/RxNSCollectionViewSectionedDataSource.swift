@@ -23,13 +23,13 @@ open class RxNSCollectionViewSectionedReloadDataSource<Section: DifferentiableSe
 open class RxNSCollectionViewSectionedAnimatedDataSource<Section: DifferentiableSection>: CollectionViewSectionedDataSource<Section>, RxNSCollectionViewDataSourceType {
     public typealias Element = [Section]
 
-    public typealias DecideViewTransition = (CollectionViewSectionedDataSource<Section>, NSCollectionView, Changeset<[Section]>) -> ViewTransition
+    public typealias DecideViewTransition = (_ dataSource: CollectionViewSectionedDataSource<Section>, _ collectionView: NSCollectionView, _ changeset: Changeset<[Section]>) -> ViewTransition
     public var decideViewTransition: DecideViewTransition
 
     public init(
         decideViewTransition: @escaping DecideViewTransition = { _, _, _ in .animated },
         itemProvider: @escaping CollectionViewSectionedDataSource<Section>.ItemProvider,
-        supplementaryViewProvider: @escaping CollectionViewSectionedDataSource<Section>.SupplementaryViewProvider = { _, _, _, _ in NSView() }
+        supplementaryViewProvider: CollectionViewSectionedDataSource<Section>.SupplementaryViewProvider?
     ) {
         self.decideViewTransition = decideViewTransition
         super.init(itemProvider: itemProvider, supplementaryViewProvider: supplementaryViewProvider)

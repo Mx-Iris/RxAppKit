@@ -19,7 +19,7 @@ public extension OutlineNodeType {
     }
 }
 
-class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate {
+open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate {
     /// Re-targeting API for drag-n-drop.
     public struct ProposedDrop {
         /// Dropping type.
@@ -42,63 +42,63 @@ class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewD
         public var operation: NSDragOperation
     }
 
-    typealias ViewForItem = (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?
-    typealias RowForItem = (NSOutlineView, OutlineNode) -> NSTableRowView?
-    typealias ValidateDrop = (NSOutlineView, ProposedDrop) -> ProposedDrop?
-    typealias AcceptDrop = (NSOutlineView, ProposedDrop) -> Bool
+    public typealias ViewForItem = (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?
+    public typealias RowForItem = (NSOutlineView, OutlineNode) -> NSTableRowView?
+    public typealias ValidateDrop = (NSOutlineView, ProposedDrop) -> ProposedDrop?
+    public typealias AcceptDrop = (NSOutlineView, ProposedDrop) -> Bool
 
     public internal(set) var nodes: [OutlineNode] = []
 
-    var viewForItem: ViewForItem
-    var rowForItem: RowForItem
-    var validateDrop: ValidateDrop?
-    var acceptDrop: AcceptDrop?
+    open var viewForItem: ViewForItem
+    open var rowForItem: RowForItem
+    open var validateDrop: ValidateDrop?
+    open var acceptDrop: AcceptDrop?
 
-    init(viewForItem: @escaping ViewForItem, rowForItem: @escaping RowForItem = { _, _ in nil }) {
+    public init(viewForItem: @escaping ViewForItem, rowForItem: @escaping RowForItem = { _, _ in nil }) {
         self.viewForItem = viewForItem
         self.rowForItem = rowForItem
     }
 
     // MARK: - Data
 
-    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+    open func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         guard let node = item as? OutlineNode else {
             return nodes.count
         }
         return node.children.count
     }
 
-    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+    open func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         guard let node = item as? OutlineNode else {
             return nodes[index]
         }
         return node.children[index]
     }
 
-    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+    open func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
         guard let node = item as? OutlineNode else { return false }
         return node.isExpandable
     }
 
     // MARK: - View
 
-    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+    open func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
         guard let node = item as? OutlineNode else { return nil }
         return viewForItem(outlineView, tableColumn, node)
     }
 
-    func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
+    open func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
         guard let node = item as? OutlineNode else { return nil }
         return rowForItem(outlineView, node)
     }
 
     // MARK: - Drag Drop
 
-    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+    open func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
         NSPasteboardItem(pasteboardPropertyList: outlineView.row(forItem: item), ofType: .OutlineViewAdapter.row)
     }
 
-    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
+    open func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
         // Calculate proposed change if allowed and take decision from the client handler
         guard let proposedDrop = proposedDrop(outlineView, using: info, proposedItem: item, proposedChildIndex: index),
               let validateDrop, let drop = validateDrop(outlineView, proposedDrop) else { return [] }
@@ -130,7 +130,7 @@ class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewD
         }
     }
 
-    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+    open func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
         guard let proposedDrop = proposedDrop(outlineView, using: info, proposedItem: item, proposedChildIndex: index),
               let acceptDrop
         else { return false }

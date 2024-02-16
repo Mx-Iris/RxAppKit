@@ -23,9 +23,9 @@ open class RxNSTableViewArrayReloadAdapter<T: Differentiable>: TableViewArrayAda
 open class RxNSTableViewArrayAnimatedAdapter<T: Differentiable>: TableViewArrayAdapter<T>, RxNSTableViewDataSourceType {
     public typealias Element = [T]
     public typealias DecideViewTransition = (TableViewArrayAdapter<T>, NSTableView, Changeset<[T]>) -> ViewTransition
-    public var animationConfiguration: TableViewAnimationConfiguration
+    open var animationConfiguration: TableViewAnimationConfiguration
     
-    public var decideViewTransition: DecideViewTransition
+    open var decideViewTransition: DecideViewTransition
     
     public init(
         animationConfiguration: TableViewAnimationConfiguration,
@@ -39,7 +39,7 @@ open class RxNSTableViewArrayAnimatedAdapter<T: Differentiable>: TableViewArrayA
     }
     /// there is no longer limitation to load initial sections with reloadData
     /// but it is kept as a feature everyone got used to
-    var dataSet = false
+    private var dataSet = false
     
     open func tableView(_ tableView: NSTableView, observedEvent: Event<Element>) {
         Binder<Element>(self) { dataSource, newItems in

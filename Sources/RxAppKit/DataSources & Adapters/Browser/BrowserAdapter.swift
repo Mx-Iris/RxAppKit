@@ -16,9 +16,9 @@ public extension BrowserNodeType {
 open class BrowserAdapter<BrowserNode: BrowserNodeType, Cell: NSCell>: NSObject, NSBrowserDelegate {
     public internal(set) var rootNode: BrowserNode?
 
-    public typealias ConfigureCell = (BrowserNode, Cell, Int, Int) -> Void
-    public typealias HeaderForItem = (NSBrowser, BrowserNode) -> NSViewController?
-    public typealias PreviewForLeafItem = (NSBrowser, BrowserNode) -> NSViewController?
+    public typealias ConfigureCell = (_ node: BrowserNode, _ cell: Cell, _ row: Int, _ column: Int) -> Void
+    public typealias HeaderForItem = (_ browser: NSBrowser, _ node: BrowserNode) -> NSViewController?
+    public typealias PreviewForLeafItem = (_ browser: NSBrowser, _ node: BrowserNode) -> NSViewController?
 
     open var configureCell: ConfigureCell
     open var headerForItem: HeaderForItem?

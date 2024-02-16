@@ -12,11 +12,11 @@ public protocol PageControllerItem {
 }
 
 open class PageControllerAdapter<Item: PageControllerItem>: NSObject, NSPageControllerDelegate {
-    public typealias ItemProvider<ItemType: PageControllerItem> = (NSPageController, String, ItemType) -> NSViewController
+    public typealias ItemProvider<ItemType: PageControllerItem> = (_ pageController: NSPageController, _ identifier: String, _ item: ItemType) -> NSViewController
 
     public var itemProvider: ItemProvider<Item>
 
-    var items: [String: Item] = [:]
+    public internal(set) var items: [String: Item] = [:]
 
     public init(itemProvider: @escaping ItemProvider<Item>) {
         self.itemProvider = itemProvider
@@ -36,7 +36,7 @@ open class PageControllerAdapter<Item: PageControllerItem>: NSObject, NSPageCont
         return itemProvider(pageController, identifier, item)
     }
 
-    public func pageController(_ pageController: NSPageController, frameFor object: Any?) -> NSRect {
+    open func pageController(_ pageController: NSPageController, frameFor object: Any?) -> NSRect {
         pageController.view.bounds
     }
 }

@@ -1,27 +1,27 @@
 import AppKit
 
-class ComboBoxDataSource: NSObject, NSComboBoxDataSource {
-    var contents: [String] = []
+open class ComboBoxDataSource: NSObject, NSComboBoxDataSource {
+    open var contents: [String] = []
 
-    typealias IndexOfItem = (NSComboBox, String) -> Int
-    typealias CompletedString = (NSComboBox, String) -> String?
+    public typealias IndexOfItem = (_ comboBox: NSComboBox, _ stringValue: String) -> Int
+    public typealias CompletedString = (_ comboBox: NSComboBox, _ completedString: String) -> String?
 
-    var indexOfItem: IndexOfItem?
-    var completedString: CompletedString?
+    open var indexOfItem: IndexOfItem?
+    open var completedString: CompletedString?
 
-    func numberOfItems(in comboBox: NSComboBox) -> Int {
+    open func numberOfItems(in comboBox: NSComboBox) -> Int {
         return contents.count
     }
 
-    func comboBox(_ comboBox: NSComboBox, objectValueForItemAt index: Int) -> Any? {
+    open func comboBox(_ comboBox: NSComboBox, objectValueForItemAt index: Int) -> Any? {
         return contents[index]
     }
 
-    func comboBox(_ comboBox: NSComboBox, indexOfItemWithStringValue string: String) -> Int {
+    open func comboBox(_ comboBox: NSComboBox, indexOfItemWithStringValue string: String) -> Int {
         return indexOfItem?(comboBox, string) ?? contents.firstIndex(of: string) ?? -1
     }
 
-    func comboBox(_ comboBox: NSComboBox, completedString string: String) -> String? {
+    open func comboBox(_ comboBox: NSComboBox, completedString string: String) -> String? {
         if let completedString {
             return completedString(comboBox, string)
         }
