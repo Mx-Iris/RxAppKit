@@ -33,4 +33,16 @@ extension Reactive where Base: AnyObject {
         let source = methodInvoked(selector).map { _ in }
         return ControlEvent(events: source)
     }
+    
+    
+}
+
+extension Reactive where Base: NSObject {
+    public func binder<T>(forSelector selector: Selector) -> Binder<T> {
+        Binder<T>(base) { target, arg in
+            if target.responds(to: selector) {
+                target.perform(selector, with: arg)
+            }
+        }
+    }
 }
