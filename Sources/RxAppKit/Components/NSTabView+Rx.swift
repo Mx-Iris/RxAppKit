@@ -2,6 +2,13 @@ import AppKit
 import RxSwift
 
 extension Reactive where Base: NSTabView {
+    
+    public var selectedTabViewItemIndex: Binder<Int> {
+        .init(base) { target, index in
+            target.selectTabViewItem(at: index)
+        }
+    }
+    
     public var delegate: DelegateProxy<NSTabView, NSTabViewDelegate> {
         RxNSTabViewDelegateProxy.proxy(for: base)
     }
