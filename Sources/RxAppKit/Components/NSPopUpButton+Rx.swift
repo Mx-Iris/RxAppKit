@@ -6,11 +6,11 @@ import DifferenceKit
 extension String: Differentiable {}
 
 extension Reactive where Base: NSPopUpButton {
-    public var selectedItem: ControlEvent<String?> {
+    public func selectedItem() -> ControlEvent<String?> {
         _controlEventForBaseAction { $0.selectedItem?.title }
     }
 
-    public var selectedIndex: ControlProperty<Int> {
+    public func selectedIndex() -> ControlProperty<Int> {
         _controlProperty { base in
             base.indexOfSelectedItem
         } setter: { base, selectedIndex in
@@ -18,7 +18,7 @@ extension Reactive where Base: NSPopUpButton {
         }
     }
 
-    public var items: Binder<[String]> {
+    public func items() -> Binder<[String]> {
         Binder(base) { (target: NSPopUpButton, items: [String]) in
             if target.itemTitles.isEmpty {
                 items.forEach(target.addItem(withTitle:))

@@ -36,7 +36,7 @@ extension Reactive where Base: NSTabView {
         return ControlEvent(events: source)
     }
 
-    public var items: Binder<[NSTabViewItem]> {
+    public func items() -> Binder<[NSTabViewItem]> {
         .init(base) { target, tabViewItems in
             target.tabViewItems.forEach(target.removeTabViewItem(_:))
             tabViewItems.forEach(target.addTabViewItem(_:))

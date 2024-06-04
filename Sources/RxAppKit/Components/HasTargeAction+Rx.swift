@@ -25,4 +25,10 @@ extension Reactive where Base: HasTargeAction {
     }
 }
 
+extension Reactive where Base: HasDoubleAction {
+    public var doubleClick: ControlEvent<Void> {
+        _controlEventForDoubleAction { _ in () }
+    }
+}
+
 #endif

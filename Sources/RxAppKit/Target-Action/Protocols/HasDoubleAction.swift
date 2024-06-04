@@ -5,7 +5,7 @@ import RxSwift
 import RxCocoa
 
 @objc
-protocol HasDoubleAction: HasTargeAction {
+public protocol HasDoubleAction: HasTargeAction {
     var doubleAction: Selector? { set get }
 }
 

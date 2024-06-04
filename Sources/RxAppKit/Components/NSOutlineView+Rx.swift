@@ -24,6 +24,26 @@ extension Reactive where Base: NSOutlineView {
         }
     }
     
+    public func doubleClickedItem<Item>() -> ControlEvent<Item> {
+        return _itemForControlEvent(didDoubleClick)
+    }
+    
+    public func clickedItem<Item>() -> ControlEvent<Item> {
+        return _itemForControlEvent(didClick)
+    }
+    
+    public func selectedItem<Item>() -> ControlEvent<Item> {
+        return _itemForControlEvent(didSelect)
+    }
+    
+    private func _itemForControlEvent<Item>(_ controlEvent: ControlEvent<TableIndex>) -> ControlEvent<Item> {
+        let source = controlEvent.compactMap { [weak base] clickedIndex -> Item? in
+            guard let base, let item = base.item(atRow: clickedIndex.row) as? Item else { return nil }
+            return item
+        }
+        return ControlEvent(events: source)
+    }
+    
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?)
         -> Disposable

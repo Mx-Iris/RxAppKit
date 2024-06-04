@@ -3,8 +3,9 @@ import RxSwift
 
 extension NSBrowser: HasDoubleAction {}
 
+public typealias ClickedIndex = (row: Int, column: Int)
+
 extension Reactive where Base: NSBrowser {
-    public typealias ClickedIndex = (row: Int, column: Int)
 
     public var delegate: DelegateProxy<NSBrowser, NSBrowserDelegate> {
         RxNSBrowserDelegateProxy.proxy(for: base)

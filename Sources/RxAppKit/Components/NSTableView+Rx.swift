@@ -9,8 +9,6 @@ public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
 
 public typealias TableIndex = (row: Int, column: Int)
 
-
-
 extension Reactive where Base: NSTableView {
     public typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
     public typealias RowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
@@ -26,7 +24,7 @@ extension Reactive where Base: NSTableView {
     public func setDataSource(_ dataSource: NSTableViewDataSource) -> Disposable {
         RxNSTableViewDataSourceProxy.installForwardDelegate(dataSource, retainDelegate: false, onProxyForObject: base)
     }
-    
+
     public func setDelegate(_ delegate: NSTableViewDelegate) -> Disposable {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
