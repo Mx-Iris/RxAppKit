@@ -47,6 +47,7 @@ open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutline
     public typealias ValidateDrop = (NSOutlineView, ProposedDrop) -> ProposedDrop?
     public typealias AcceptDrop = (NSOutlineView, ProposedDrop) -> Bool
 
+    public internal(set) var rootNode: OutlineNode?
     public internal(set) var nodes: [OutlineNode] = []
 
     open var viewForItem: ViewForItem
@@ -63,20 +64,20 @@ open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutline
 
     open func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         guard let node = item as? OutlineNode else {
-            return nodes.count
+            return rootNode != nil ? 1 : nodes.count
         }
         return node.children.count
     }
 
     open func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         guard let node = item as? OutlineNode else {
-            return nodes[index]
+            return rootNode ?? nodes[index]
         }
         return node.children[index]
     }
 
     open func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        guard let node = item as? OutlineNode else { return false }
+        guard let node = item as? OutlineNode else { return rootNode.map { !$0.children.isEmpty } ?? false }
         return node.isExpandable
     }
 

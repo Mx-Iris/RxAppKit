@@ -13,6 +13,17 @@ extension Reactive where Base: NSOutlineView {
         RxNSOutlineViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
     
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?)
+        -> Disposable
+        where OutlineNode.NodeType == OutlineNode, Source.Element == OutlineNode {
+        return { viewForItem in
+            base.registerForDraggedTypes(base.registeredDraggedTypes + [.OutlineViewAdapter.row])
+            let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(viewForItem: viewForItem)
+            return self.nodes(adapter: adapter)(source)
+        }
+    }
+    
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?)
         -> Disposable
