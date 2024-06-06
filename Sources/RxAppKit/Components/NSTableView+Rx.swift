@@ -13,12 +13,20 @@ extension Reactive where Base: NSTableView {
     public typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
     public typealias RowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
+    private var _tableViewDataSource: RxNSTableViewDataSourceProxy {
+        .proxy(for: base)
+    }
+
     public var tableViewDataSource: DelegateProxy<NSTableView, NSTableViewDataSource> {
-        RxNSTableViewDataSourceProxy.proxy(for: base)
+        _tableViewDataSource
+    }
+
+    private var _tableViewDelegate: RxNSTableViewDelegateProxy {
+        .proxy(for: base)
     }
 
     public var tableViewDelegate: DelegateProxy<NSTableView, NSTableViewDelegate> {
-        RxNSTableViewDelegateProxy.proxy(for: base)
+        _tableViewDelegate
     }
 
     public func setDataSource(_ dataSource: NSTableViewDataSource) -> Disposable {
@@ -107,7 +115,7 @@ extension Reactive where Base: NSTableView {
         let source = didAddRow().filter { $0.row == base.numberOfRows - 1 }
         return ControlEvent(events: source)
     }
-    
+
     public func modelSelected<T>() -> ControlEvent<T> {
         let source = itemSelected().compactMap { [weak view = base] clickedIndex -> T? in
             guard let view else { return nil }
@@ -115,9 +123,9 @@ extension Reactive where Base: NSTableView {
         }
         return ControlEvent(events: source)
     }
-    
+
     public func model<T>(at row: Int) throws -> T {
-        let dataSource: RowsViewDataSourceType = castOrFatalError(self.tableViewDataSource.forwardToDelegate(), message: "This method only works in case one of the `rx.items*` methods was used.")
+        let dataSource: RowsViewDataSourceType = castOrFatalError(_tableViewDataSource._requiredMethodsDelegate.object, message: "This method only works in case one of the `rx.items*` methods was used.")
         let element = try dataSource.model(at: row)
         return castOrFatalError(element)
     }
