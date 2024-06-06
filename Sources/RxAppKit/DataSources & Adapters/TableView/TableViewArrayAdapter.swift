@@ -1,6 +1,6 @@
 import AppKit
 
-open class TableViewArrayAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+open class TableViewArrayAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDelegate, RowsViewDataSourceType {
     public typealias CellViewProvider = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: T) -> NSView?
     public typealias RowViewProvider = (_ tableView: NSTableView, _ row: Int, _ items: [T]) -> NSTableRowView
 
@@ -28,5 +28,9 @@ open class TableViewArrayAdapter<T>: NSObject, NSTableViewDataSource, NSTableVie
 
     open func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
         return rowProvider(tableView, row, [items[row]])
+    }
+    
+    public func model(at row: Int) throws -> Any {
+        items[row]
     }
 }

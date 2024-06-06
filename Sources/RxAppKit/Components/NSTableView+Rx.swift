@@ -59,19 +59,19 @@ extension Reactive where Base: NSTableView {
         }
     }
 
-    public var didDoubleClick: ControlEvent<TableIndex> {
+    public func itemDoubleClicked() -> ControlEvent<TableIndex> {
         _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
-    public var didClick: ControlEvent<TableIndex> {
+    public func itemClicked() -> ControlEvent<TableIndex> {
         _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
-    public var didSelect: ControlEvent<TableIndex> {
+    public func itemSelected() -> ControlEvent<TableIndex> {
         _controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
     }
 
-    public var didAddRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {
+    public func didAddRow() -> ControlEvent<(rowView: NSTableRowView, row: Int)> {
         let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didAdd:forRow:)))
             .map { a -> (rowView: NSTableRowView, row: Int) in
                 try (castOrThrow(NSTableRowView.self, a[1]), castOrThrow(Int.self, a[2]))
@@ -79,7 +79,7 @@ extension Reactive where Base: NSTableView {
         return ControlEvent(events: source)
     }
 
-    public var didRemoveRow: ControlEvent<(rowView: NSTableRowView, row: Int)> {
+    public func didRemoveRow() -> ControlEvent<(rowView: NSTableRowView, row: Int)> {
         let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didRemove:forRow:)))
             .map { a -> (rowView: NSTableRowView, row: Int) in
                 try (castOrThrow(NSTableRowView.self, a[1]), castOrThrow(Int.self, a[2]))
@@ -87,7 +87,7 @@ extension Reactive where Base: NSTableView {
         return ControlEvent(events: source)
     }
 
-    public var didClickColumn: ControlEvent<NSTableColumn> {
+    public func didClickColumn() -> ControlEvent<NSTableColumn> {
         let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didClick:)))
             .map { a -> NSTableColumn in
                 try castOrThrow(NSTableColumn.self, a[1])
@@ -95,7 +95,7 @@ extension Reactive where Base: NSTableView {
         return ControlEvent(events: source)
     }
 
-    public var didDragColumn: ControlEvent<NSTableColumn> {
+    public func didDragColumn() -> ControlEvent<NSTableColumn> {
         let source = tableViewDelegate.methodInvoked(#selector(NSTableViewDelegate.tableView(_:didDrag:)))
             .map { a -> NSTableColumn in
                 try castOrThrow(NSTableColumn.self, a[1])
@@ -103,8 +103,22 @@ extension Reactive where Base: NSTableView {
         return ControlEvent(events: source)
     }
 
-    public var didScrollEnd: ControlEvent<(rowView: NSTableRowView, row: Int)> {
-        let source = didAddRow.filter { $0.row == base.numberOfRows - 1 }
+    public func didScrollEnd() -> ControlEvent<(rowView: NSTableRowView, row: Int)> {
+        let source = didAddRow().filter { $0.row == base.numberOfRows - 1 }
         return ControlEvent(events: source)
+    }
+    
+    public func modelSelected<T>() -> ControlEvent<T> {
+        let source = itemSelected().compactMap { [weak view = base] clickedIndex -> T? in
+            guard let view else { return nil }
+            return try view.rx.model(at: clickedIndex.row)
+        }
+        return ControlEvent(events: source)
+    }
+    
+    public func model<T>(at row: Int) throws -> T {
+        let dataSource: RowsViewDataSourceType = castOrFatalError(self.tableViewDataSource.forwardToDelegate(), message: "This method only works in case one of the `rx.items*` methods was used.")
+        let element = try dataSource.model(at: row)
+        return castOrFatalError(element)
     }
 }
