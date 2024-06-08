@@ -2,41 +2,18 @@
 
 import AppKit
 import RxSwift
+import RxCocoa
 
-private enum RxHasTargetActionKey {
+private enum RxHasTargetRequiredActionKey {
     static var controlEvent: Void = ()
     static var controlProperty: Void = ()
 }
 
-extension Reactive where Base: HasTargeAction {
-    public var click: ControlEvent<Void> {
-        _controlEventForBaseAction { _ in () }
-    }
-
-    public func click<Value>(with keyPath: KeyPath<Base, Value>, isStartWithDefaultValue: Bool = false) -> ControlEvent<Value> {
-        var source = _controlEventForBaseAction { $0[keyPath: keyPath] }.asObservable()
-        if isStartWithDefaultValue {
-            source = source.startWith(base[keyPath: keyPath])
-        }
-        return ControlEvent(events: source)
-    }
-
-    public var clickWithSelf: ControlEvent<Base> {
-        _controlEventForBaseAction { $0 }
-    }
-
-    public subscript<Property>(dynamicMember keyPath: ReferenceWritableKeyPath<Base, Property>) -> ControlProperty<Property> where Base: AnyObject {
-        _controlProperty(forKeyPath: keyPath)
-    }
-
-    public subscript<Property>(dynamicMember keyPath: ReferenceWritableKeyPath<Base, Property>) -> ControlEvent<Property> where Base: AnyObject {
-        _controlEventForBaseAction { $0[keyPath: keyPath] }
-    }
-
-    func _controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
+extension Reactive where Base: NSObject, Base: HasTargetRequiredAction {
+    func controlEventForBaseAction<PropertyType>(_ makeEvent: @escaping (Base) -> PropertyType) -> ControlEvent<PropertyType> {
         MainScheduler.ensureRunningOnMainThread()
 
-        let source = base.rx.lazyInstanceObservable(&RxHasTargetActionKey.controlEvent) { () -> Observable<Void> in
+        let source = base.rx.lazyInstanceObservable(&RxHasTargetRequiredActionKey.controlEvent) { () -> Observable<Void> in
             Observable.create { (observer: AnyObserver<Void>) in
 
                 let target = BaseTarget {
@@ -58,7 +35,7 @@ extension Reactive where Base: HasTargeAction {
         return ControlEvent(events: source)
     }
 
-    func _controlProperty<Value>(forKeyPath keyPath: ReferenceWritableKeyPath<Base, Value>) -> ControlProperty<Value> {
+    func controlProperty<Value>(forKeyPath keyPath: ReferenceWritableKeyPath<Base, Value>) -> ControlProperty<Value> {
         return base.rx._controlProperty(
             getter: { control -> Value in
                 control[keyPath: keyPath]
@@ -78,7 +55,7 @@ extension Reactive where Base: HasTargeAction {
     ) -> ControlProperty<T> {
         MainScheduler.ensureRunningOnMainThread()
 
-        var source = base.rx.lazyInstanceObservable(&RxHasTargetActionKey.controlProperty) { () -> Observable<Void> in
+        let source = base.rx.lazyInstanceObservable(&RxHasTargetRequiredActionKey.controlProperty) { () -> Observable<Void> in
             Observable.create { (observer: AnyObserver<Void>) in
 
                 let target = BaseTarget {
@@ -102,5 +79,4 @@ extension Reactive where Base: HasTargeAction {
         return ControlProperty(values: source, valueSink: bindingObserver)
     }
 }
-
 #endif
