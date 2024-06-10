@@ -68,15 +68,15 @@ extension Reactive where Base: NSTableView {
     }
 
     public func itemDoubleClicked() -> ControlEvent<TableIndex> {
-        _controlEventForDoubleAction { $0 }.filter { $0.hasValidClickedIndex }.map { ($0.clickedRow, $0.clickedColumn) }.asControlEvent()
+        _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     public func itemClicked() -> ControlEvent<TableIndex> {
-        _controlEventForBaseAction { $0 }.filter { $0.hasValidClickedIndex }.map { ($0.clickedRow, $0.clickedColumn) }.asControlEvent()
+        _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
     public func itemSelected() -> ControlEvent<TableIndex> {
-        _controlEventForBaseAction{ $0 }.filter { $0.hasValidSelectedIndex }.map { ($0.selectedRow, $0.selectedColumn) }.asControlEvent()
+        _controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
     }
 
     public func didAddRow() -> ControlEvent<(rowView: NSTableRowView, row: Int)> {
@@ -118,7 +118,7 @@ extension Reactive where Base: NSTableView {
 
     public func modelSelected<T>() -> ControlEvent<T> {
         let source = itemSelected().compactMap { [weak view = base] clickedIndex -> T? in
-            guard let view else { return nil }
+            guard let view, view.isValidRowIndex(clickedIndex.row) else { return nil }
             return try view.rx.model(at: clickedIndex.row)
         }
         return ControlEvent(events: source)
@@ -132,20 +132,42 @@ extension Reactive where Base: NSTableView {
 }
 
 extension NSTableView {
-    
-    var hasValidClickedIndex: Bool {
-       isValidTableIndex((clickedRow, clickedColumn))
+    var hasValidSelectedRow: Bool {
+        isValidRowIndex(selectedRow)
     }
-    
+
+    var hasValidSelectedColumn: Bool {
+        isValidColumnIndex(selectedColumn)
+    }
+
+    var hasValidClickedRow: Bool {
+        isValidRowIndex(clickedRow)
+    }
+
+    var hasValidClickedColumn: Bool {
+        isValidColumnIndex(clickedColumn)
+    }
+
+    var hasValidClickedIndex: Bool {
+        isValidTableIndex((clickedRow, clickedColumn))
+    }
+
     var hasValidSelectedIndex: Bool {
         isValidTableIndex((selectedRow, selectedColumn))
     }
-    
+
+    func isValidRowIndex(_ row: Int) -> Bool {
+        row >= 0 && row < numberOfRows
+    }
+
+    func isValidColumnIndex(_ column: Int) -> Bool {
+        column >= 0 && column < numberOfColumns
+    }
+
     func isValidTableIndex(_ tableIndex: TableIndex) -> Bool {
-        tableIndex.row >= 0 && tableIndex.row < numberOfRows && tableIndex.column >= 0 && tableIndex.column < numberOfColumns
+        isValidRowIndex(tableIndex.row) && isValidColumnIndex(tableIndex.column)
     }
 }
-
 
 extension Observable {
     func asControlEvent() -> ControlEvent<Element> {
