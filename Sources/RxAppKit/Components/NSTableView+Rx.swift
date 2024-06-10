@@ -68,15 +68,15 @@ extension Reactive where Base: NSTableView {
     }
 
     public func itemDoubleClicked() -> ControlEvent<TableIndex> {
-        _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
+        _controlEventForDoubleAction { $0 }.filter { $0.hasValidClickedIndex }.map { ($0.clickedRow, $0.clickedColumn) }.asControlEvent()
     }
 
     public func itemClicked() -> ControlEvent<TableIndex> {
-        _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
+        _controlEventForBaseAction { $0 }.filter { $0.hasValidClickedIndex }.map { ($0.clickedRow, $0.clickedColumn) }.asControlEvent()
     }
 
     public func itemSelected() -> ControlEvent<TableIndex> {
-        _controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
+        _controlEventForBaseAction{ $0 }.filter { $0.hasValidSelectedIndex }.map { ($0.selectedRow, $0.selectedColumn) }.asControlEvent()
     }
 
     public func didAddRow() -> ControlEvent<(rowView: NSTableRowView, row: Int)> {
@@ -128,5 +128,27 @@ extension Reactive where Base: NSTableView {
         let dataSource: RowsViewDataSourceType = castOrFatalError(_tableViewDataSource._requiredMethodsDelegate.object, message: "This method only works in case one of the `rx.items*` methods was used.")
         let element = try dataSource.model(at: row)
         return castOrFatalError(element)
+    }
+}
+
+extension NSTableView {
+    
+    var hasValidClickedIndex: Bool {
+       isValidTableIndex((clickedRow, clickedColumn))
+    }
+    
+    var hasValidSelectedIndex: Bool {
+        isValidTableIndex((selectedRow, selectedColumn))
+    }
+    
+    func isValidTableIndex(_ tableIndex: TableIndex) -> Bool {
+        tableIndex.row >= 0 && tableIndex.row < numberOfRows && tableIndex.column >= 0 && tableIndex.column < numberOfColumns
+    }
+}
+
+
+extension Observable {
+    func asControlEvent() -> ControlEvent<Element> {
+        .init(events: self)
     }
 }
