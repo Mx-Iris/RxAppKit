@@ -1,5 +1,6 @@
 import AppKit
 import RxSwift
+import RxCocoa
 
 extension Reactive where Base: NSApplication {
     public var didFinishLaunching: ControlEvent<Void> {
