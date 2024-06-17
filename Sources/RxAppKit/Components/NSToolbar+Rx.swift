@@ -5,9 +5,9 @@ import RxSwift
 import RxCocoa
 
 extension Reactive where Base: NSToolbar {
-    public var delegate: DelegateProxy<NSToolbar, NSToolbarDelegate> {
-        RxNSToolbarDelegateProxy.proxy(for: base)
-    }
+//    public var delegate: DelegateProxy<NSToolbar, NSToolbarDelegate> {
+//        RxNSToolbarDelegateProxy.proxy(for: base)
+//    }
 
     public func items<Item: RxToolbarItemRepresentable, Source: ObservableType>(_ source: Source)
         -> (_ toolbarItemProvider: @escaping (_ toolbar: NSToolbar, _ itemIdentifier: NSToolbarItem.Identifier, _ willBeInsertedIntoToolbar: Bool, _ item: Item) -> NSToolbarItem?)
