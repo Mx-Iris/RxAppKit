@@ -10,7 +10,7 @@ extension NSSharingServicePickerToolbarItem: HasDelegate {
 }
 
 @available(macOS 10.15, *)
-class RxNSSharingServicePickerToolbarItemDelegateProxy: DelegateProxy<NSSharingServicePickerToolbarItem, NSSharingServicePickerToolbarItemDelegate>, DelegateProxyType, NSSharingServicePickerToolbarItemDelegate {
+class RxNSSharingServicePickerToolbarItemDelegateProxy: DelegateProxy<NSSharingServicePickerToolbarItem, NSSharingServicePickerToolbarItemDelegate>, RequiredMethodDelegateProxyType, NSSharingServicePickerToolbarItemDelegate {
     
     public private(set) weak var sharingServicePickerToolbarItem: NSSharingServicePickerToolbarItem?
     
@@ -19,6 +19,8 @@ class RxNSSharingServicePickerToolbarItemDelegateProxy: DelegateProxy<NSSharingS
         super.init(parentObject: sharingServicePickerToolbarItem, delegateProxy: RxNSSharingServicePickerToolbarItemDelegateProxy.self)
     }
     
+    let _requiredMethodsDelegate = ObjectContainer<NSSharingServicePickerToolbarItemDelegate>()
+    
     static func registerKnownImplementations() {
         register {
             RxNSSharingServicePickerToolbarItemDelegateProxy(sharingServicePickerToolbarItem: $0)
@@ -26,7 +28,7 @@ class RxNSSharingServicePickerToolbarItemDelegateProxy: DelegateProxy<NSSharingS
     }
     
     func items(for pickerToolbarItem: NSSharingServicePickerToolbarItem) -> [Any] {
-        []
+        _requiredMethodsDelegate.object?.items(for: pickerToolbarItem) ?? []
     }
     
 }

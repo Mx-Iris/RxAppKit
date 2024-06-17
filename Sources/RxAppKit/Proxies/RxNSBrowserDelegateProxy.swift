@@ -39,7 +39,7 @@ class RxNSBrowserDelegateProxy: DelegateProxy<NSBrowser, NSBrowserDelegate>, Req
         register { RxNSBrowserDelegateProxy(browser: $0) }
     }
 
-    public let _requiredMethodsDelegate = ObjectContainer<NSBrowserDelegate>()
+    let _requiredMethodsDelegate = ObjectContainer<NSBrowserDelegate>()
 
     public func rootItem(for browser: NSBrowser) -> Any? {
         _requiredMethodsDelegate.object?.rootItem?(for: browser)
