@@ -14,8 +14,11 @@ extension Reactive where Base: NSObject, Base: HasTargetRequiredAction {
         MainScheduler.ensureRunningOnMainThread()
 
         let source = base.rx.lazyInstanceObservable(&RxHasTargetRequiredActionKey.controlEvent) { () -> Observable<Void> in
-            Observable.create { (observer: AnyObserver<Void>) in
-
+            Observable.create { [weak proxy] (observer: AnyObserver<Void>) in
+                guard let proxy else {
+                    observer.onCompleted()
+                    return Disposables.create()
+                }
                 let target = BaseTarget {
                     observer.on(.next(()))
                 }
@@ -56,8 +59,11 @@ extension Reactive where Base: NSObject, Base: HasTargetRequiredAction {
         MainScheduler.ensureRunningOnMainThread()
 
         let source = base.rx.lazyInstanceObservable(&RxHasTargetRequiredActionKey.controlProperty) { () -> Observable<Void> in
-            Observable.create { (observer: AnyObserver<Void>) in
-
+            Observable.create { [weak proxy] (observer: AnyObserver<Void>) in
+                guard let proxy else {
+                    observer.onCompleted()
+                    return Disposables.create()
+                }
                 let target = BaseTarget {
                     observer.on(.next(()))
                 }
