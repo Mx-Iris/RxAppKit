@@ -14,14 +14,17 @@ private enum RxHasDoubleActionKey {
 extension Reactive where Base: NSObject, Base: HasDoubleAction {
     var lazyDoubleClickObservable: Observable<Void> {
         base.rx.lazyInstanceObservable(&RxHasDoubleActionKey.controlEvent) { () -> Observable<Void> in
-            Observable.create { /* [weak weakControl = self.base] */ (observer: AnyObserver<Void>) in
+            Observable.create { /* [weak weakControl = self.base] */ [weak doubleActionProxy] (observer: AnyObserver<Void>) in
 //                guard let control = weakControl else {
 //                    observer.on(.completed)
 //                    return Disposables.create()
 //                }
 
 //                observer.on(.next(()))
-
+                guard let doubleActionProxy else {
+                    observer.onCompleted()
+                    return Disposables.create {}
+                }
                 let target = DoubleClickTarget {
                     observer.on(.next(()))
                 }
