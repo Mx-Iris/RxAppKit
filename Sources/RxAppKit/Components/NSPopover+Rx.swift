@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSPopover: HasDelegate {
+extension NSPopover: @retroactive HasDelegate {
     public typealias Delegate = NSPopoverDelegate
 }
 

@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSStackView: HasDelegate {
+extension NSStackView: @retroactive HasDelegate {
     public typealias Delegate = NSStackViewDelegate
 }
 

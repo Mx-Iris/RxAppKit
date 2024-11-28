@@ -10,6 +10,10 @@ extension Reactive where Base: NSPopUpButton {
         _controlEventForBaseAction { $0.selectedItem?.title }
     }
 
+    public func selectedItemIndex() -> ControlEvent<Int> {
+        _controlEventForBaseAction { $0.indexOfSelectedItem }
+    }
+    
     public func selectedIndex() -> ControlProperty<Int> {
         _controlProperty { base in
             base.indexOfSelectedItem
