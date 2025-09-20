@@ -10,8 +10,8 @@ public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
 public typealias TableIndex = (row: Int, column: Int)
 
 extension Reactive where Base: NSTableView {
-    public typealias CellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
-    public typealias RowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
+    public typealias TableCellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
+    public typealias TableRowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
     private var _tableViewDataSource: RxNSTableViewDataSourceProxy {
         .proxy(for: base)
@@ -38,7 +38,7 @@ extension Reactive where Base: NSTableView {
     }
 
     public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping CellProvider<Element>)
+        -> (_ cellProvider: @escaping TableCellProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider in
             return self.items(source)(cellProvider, { _, _, _ in NSTableRowView() })
@@ -46,7 +46,7 @@ extension Reactive where Base: NSTableView {
     }
 
     public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping CellProvider<Element>, _ rowProvider: @escaping RowProvider<Element>)
+        -> (_ cellProvider: @escaping TableCellProvider<Element>, _ rowProvider: @escaping TableRowProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider, rowProvider in
             let adapter = RxNSTableViewArrayReloadAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)

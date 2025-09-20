@@ -4,6 +4,9 @@ import RxCocoa
 import DifferenceKit
 
 extension Reactive where Base: NSOutlineView {
+    public typealias OutlineCellProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ node: OutlineNode) -> NSView?
+    public typealias OutlineRowProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ node: OutlineNode) -> NSTableRowView
+
     private var _outlineViewDataSource: RxNSOutlineViewDataSourceProxy {
         .proxy(for: base)
     }
@@ -29,23 +32,47 @@ extension Reactive where Base: NSOutlineView {
     }
 
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
-        -> (@escaping (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?)
+        -> (@escaping OutlineCellProvider<OutlineNode>)
         -> Disposable
         where OutlineNode.NodeType == OutlineNode, Source.Element == OutlineNode {
         return { viewForItem in
+            self.rootNode(source: source)(viewForItem, nil)
+        }
+    }
+
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellProvider<OutlineNode>, OutlineRowProvider<OutlineNode>?)
+        -> Disposable
+        where OutlineNode.NodeType == OutlineNode, Source.Element == OutlineNode {
+        return { viewForItem, rowForItem in
             base.registerForDraggedTypes(base.registeredDraggedTypes + [.OutlineViewAdapter.row])
             let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(viewForItem: viewForItem)
+            if let rowForItem {
+                adapter.rowForItem = rowForItem
+            }
             return self.nodes(adapter: adapter)(source)
         }
     }
 
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
-        -> (@escaping (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?)
+        -> (@escaping OutlineCellProvider<OutlineNode>)
         -> Disposable
         where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
         return { viewForItem in
+            self.nodes(source: source)(viewForItem, nil)
+        }
+    }
+
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellProvider<OutlineNode>, OutlineRowProvider<OutlineNode>?)
+        -> Disposable
+        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        return { viewForItem, rowForItem in
             base.registerForDraggedTypes(base.registeredDraggedTypes + [.OutlineViewAdapter.row])
             let adapter = RxNSOutlineViewAdapter<OutlineNode>(viewForItem: viewForItem)
+            if let rowForItem {
+                adapter.rowForItem = rowForItem
+            }
             return self.nodes(adapter: adapter)(source)
         }
     }
