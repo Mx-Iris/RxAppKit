@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSSavePanel: HasDelegate {
+extension NSSavePanel: @retroactive HasDelegate {
     public typealias Delegate = NSOpenSavePanelDelegate
 }
 

@@ -45,7 +45,6 @@ extension Reactive where Base: NSOutlineView {
         -> Disposable
         where OutlineNode.NodeType == OutlineNode, Source.Element == OutlineNode {
         return { viewForItem, rowForItem in
-            base.registerForDraggedTypes(base.registeredDraggedTypes + [.OutlineViewAdapter.row])
             let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(viewForItem: viewForItem)
             if let rowForItem {
                 adapter.rowForItem = rowForItem
@@ -68,7 +67,6 @@ extension Reactive where Base: NSOutlineView {
         -> Disposable
         where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
         return { viewForItem, rowForItem in
-            base.registerForDraggedTypes(base.registeredDraggedTypes + [.OutlineViewAdapter.row])
             let adapter = RxNSOutlineViewAdapter<OutlineNode>(viewForItem: viewForItem)
             if let rowForItem {
                 adapter.rowForItem = rowForItem

@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSCollectionView: HasDataSource {
+extension NSCollectionView: @retroactive HasDataSource {
     public typealias DataSource = NSCollectionViewDataSource
 }
 

@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSPageController: HasDelegate {
+extension NSPageController: @retroactive HasDelegate {
     public typealias Delegate = NSPageControllerDelegate
 }
 

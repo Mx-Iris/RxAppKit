@@ -4,7 +4,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSMenu: HasDelegate {
+extension NSMenu: @retroactive HasDelegate {
     public typealias Delegate = NSMenuDelegate
 }
 

@@ -4,7 +4,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSToolbar: HasDelegate {
+extension NSToolbar: @retroactive HasDelegate {
     public typealias Delegate = NSToolbarDelegate
 }
 

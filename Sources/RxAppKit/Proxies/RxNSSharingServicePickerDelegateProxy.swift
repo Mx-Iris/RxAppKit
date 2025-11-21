@@ -4,7 +4,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSSharingServicePicker: HasDelegate {
+extension NSSharingServicePicker: @retroactive HasDelegate {
     public typealias Delegate = NSSharingServicePickerDelegate
 }
 

@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSTabView: HasDelegate {
+extension NSTabView: @retroactive HasDelegate {
     public typealias Delegate = NSTabViewDelegate
 }
 

@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSBrowser: HasDelegate {
+extension NSBrowser: @retroactive HasDelegate {
     public typealias Delegate = NSBrowserDelegate
 }
 

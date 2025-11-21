@@ -3,7 +3,8 @@ import RxSwift
 import RxCocoa
 import DifferenceKit
 
-extension String: Differentiable {}
+extension String: @retroactive ContentEquatable {}
+extension String: @retroactive ContentIdentifiable {}
 
 extension Reactive where Base: NSPopUpButton {
     public func selectedItem() -> ControlEvent<String?> {

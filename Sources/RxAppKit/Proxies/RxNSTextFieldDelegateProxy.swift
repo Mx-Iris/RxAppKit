@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSTextField: HasDelegate {
+extension NSTextField: @retroactive HasDelegate {
     public typealias Delegate = NSTextFieldDelegate
 }
 

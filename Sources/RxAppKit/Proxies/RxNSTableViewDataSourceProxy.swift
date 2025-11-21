@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSTableView: HasDataSource {
+extension NSTableView: @retroactive HasDataSource {
     public typealias DataSource = NSTableViewDataSource
 }
 

@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSTextStorage: HasDelegate {
+extension NSTextStorage: @retroactive HasDelegate {
     public typealias Delegate = NSTextStorageDelegate
 }
 

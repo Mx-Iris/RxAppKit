@@ -82,7 +82,7 @@ extension Reactive where Base: HasTargeAction {
     ) -> ControlProperty<T> {
         MainScheduler.ensureRunningOnMainThread()
 
-        var source = base.rx.lazyInstanceObservable(&RxHasTargetActionKey.controlProperty) { () -> Observable<Void> in
+        let source = base.rx.lazyInstanceObservable(&RxHasTargetActionKey.controlProperty) { () -> Observable<Void> in
             Observable.create { [weak proxy] (observer: AnyObserver<Void>) in
                 guard let proxy else {
                     observer.onCompleted()

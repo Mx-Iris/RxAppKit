@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension NSComboBox: HasDataSource {
+extension NSComboBox: @retroactive HasDataSource {
     public typealias Delegate = NSComboBoxDataSource
 }
 

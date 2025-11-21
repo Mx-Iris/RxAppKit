@@ -5,7 +5,7 @@ import RxSwift
 import RxCocoa
 
 @available(macOS 10.15, *)
-extension NSSharingServicePickerToolbarItem: HasDelegate {
+extension NSSharingServicePickerToolbarItem: @retroactive HasDelegate {
     public typealias Delegate = NSSharingServicePickerToolbarItemDelegate
 }
 
