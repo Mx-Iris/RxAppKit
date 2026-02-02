@@ -88,6 +88,63 @@ extension Reactive where Base: NSOutlineView {
         }
     }
 
+    /// Binds an observable source to a reorderable adapter, automatically registering the outline view for drag-and-drop reordering.
+    public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellProvider<OutlineNode>)
+        -> Disposable
+        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        return { viewForItem in
+            self.reorderableNodes(source: source)(viewForItem, nil)
+        }
+    }
+
+    /// Binds an observable source to a reorderable adapter, automatically registering the outline view for drag-and-drop reordering.
+    public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellProvider<OutlineNode>, OutlineRowProvider<OutlineNode>?)
+        -> Disposable
+        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        return { viewForItem, rowForItem in
+            let adapter = RxNSOutlineViewAdapter<OutlineNode>(viewForItem: viewForItem)
+            if let rowForItem {
+                adapter.rowForItem = rowForItem
+            }
+            return self.reorderableNodes(adapter: adapter)(source)
+        }
+    }
+
+    /// Binds an observable source to a reorderable adapter, automatically registering the outline view for drag-and-drop reordering.
+    public func reorderableNodes<Source: ObservableType, Adapter: RxNSOutlineViewDataSourceType & NSOutlineViewDataSource & NSOutlineViewDelegate & ReorderableOutlineViewAdapter>(adapter: Adapter)
+        -> (_ source: Source)
+        -> Disposable where Source.Element == Adapter.Element {
+        return { source in
+            adapter.setupReordering(for: self.base)
+            return self.nodes(adapter: adapter)(source)
+        }
+    }
+
+    /// Emits source and destination indexes when items have been reordered via drag-and-drop.
+    public func itemMoved() -> ControlEvent<(sourceIndexes: IndexSet, destinationIndex: Int)> {
+        let source: Observable<(sourceIndexes: IndexSet, destinationIndex: Int)>
+        if let emitter = _outlineViewDataSource._requiredMethodsDelegate.object as? _ItemMovedEventEmitting {
+            source = emitter._itemMoved.asObservable()
+        } else {
+            source = .empty()
+        }
+        return ControlEvent(events: source)
+    }
+
+    /// Emits the new complete nodes array after drag-and-drop reordering.
+    /// Use this to sync your upstream data source (e.g. `BehaviorRelay`).
+    public func modelMoved<T>() -> ControlEvent<[T]> {
+        let source: Observable<[T]>
+        if let emitter = _outlineViewDataSource._requiredMethodsDelegate.object as? _ItemMovedEventEmitting {
+            source = emitter._modelMoved.compactMap { $0 as? [T] }
+        } else {
+            source = .empty()
+        }
+        return ControlEvent(events: source)
+    }
+
     public func modelDoubleClicked<Item>() -> ControlEvent<Item> {
         return _modelForControlEvent(itemDoubleClicked())
     }

@@ -19,16 +19,10 @@ open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Diff
 
     open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSOutlineViewAdapter<OutlineNode>, newNodes) in
+            // Skip reload when data is unchanged (e.g. reorder feedback loop)
+            guard dataSource.nodes != newNodes else { return }
             dataSource.nodes = newNodes
             outlineView.reloadData()
-//            let oldItems = dataSource.nodes
-//            let newItems = newNodes
-//            let changeset = StagedChangeset(source: oldItems, target: newItems)
-//            outlineView.reload(using: changeset, with: []) { _ in
-//                return true
-//            } setData: {
-//                dataSource.nodes = $0
-//            }
         }.on(observedEvent)
     }
 }

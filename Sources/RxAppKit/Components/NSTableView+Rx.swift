@@ -11,6 +11,7 @@ public typealias TableIndex = (row: Int, column: Int)
 
 extension Reactive where Base: NSTableView {
     public typealias TableCellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
+    
     public typealias TableRowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
     private var _tableViewDataSource: RxNSTableViewDataSourceProxy {
@@ -65,6 +66,58 @@ extension Reactive where Base: NSTableView {
             let delegateSubscription = RxNSTableViewDelegateProxy.installRequiredMethodDelegate(adapter, retainDelegate: false, onProxyForObject: base)
             return Disposables.create([dataSourceSubscription, delegateSubscription])
         }
+    }
+
+    /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
+    public func reorderableItems<Element: Differentiable, Source: ObservableType>(_ source: Source)
+        -> (_ cellProvider: @escaping TableCellProvider<Element>)
+        -> Disposable where Source.Element == [Element] {
+        return { cellProvider in
+            self.reorderableItems(source)(cellProvider, { _, _, _ in NSTableRowView() })
+        }
+    }
+
+    /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
+    public func reorderableItems<Element: Differentiable, Source: ObservableType>(_ source: Source)
+        -> (_ cellProvider: @escaping TableCellProvider<Element>, _ rowProvider: @escaping TableRowProvider<Element>)
+        -> Disposable where Source.Element == [Element] {
+        return { cellProvider, rowProvider in
+            let adapter = RxNSTableViewArrayReloadAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)
+            return self.reorderableItems(adapter: adapter)(source)
+        }
+    }
+
+    /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
+    public func reorderableItems<Source: ObservableType, Adapter: RxNSTableViewDataSourceType & NSTableViewDataSource & NSTableViewDelegate & ReorderableTableViewAdapter>(adapter: Adapter)
+        -> (_ source: Source)
+        -> Disposable where Source.Element == Adapter.Element {
+        return { source in
+            adapter.setupReordering(for: self.base)
+            return self.items(adapter: adapter)(source)
+        }
+    }
+
+    /// Emits source and destination indexes when items have been reordered via drag-and-drop.
+    public func itemMoved() -> ControlEvent<(sourceIndexes: IndexSet, destinationIndex: Int)> {
+        let source: Observable<(sourceIndexes: IndexSet, destinationIndex: Int)>
+        if let emitter = _tableViewDataSource._requiredMethodsDelegate.object as? _ItemMovedEventEmitting {
+            source = emitter._itemMoved.asObservable()
+        } else {
+            source = .empty()
+        }
+        return ControlEvent(events: source)
+    }
+
+    /// Emits the new complete items array after drag-and-drop reordering.
+    /// Use this to sync your upstream data source (e.g. `BehaviorRelay`).
+    public func modelMoved<T>() -> ControlEvent<[T]> {
+        let source: Observable<[T]>
+        if let emitter = _tableViewDataSource._requiredMethodsDelegate.object as? _ItemMovedEventEmitting {
+            source = emitter._modelMoved.compactMap { $0 as? [T] }
+        } else {
+            source = .empty()
+        }
+        return ControlEvent(events: source)
     }
 
     public func itemDoubleClicked() -> ControlEvent<TableIndex> {
