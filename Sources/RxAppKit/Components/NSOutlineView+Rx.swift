@@ -34,7 +34,7 @@ extension Reactive where Base: NSOutlineView {
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellProvider<OutlineNode>)
         -> Disposable
-        where OutlineNode.NodeType == OutlineNode, Source.Element == OutlineNode {
+        where Source.Element == OutlineNode {
         return { viewForItem in
             self.rootNode(source: source)(viewForItem, nil)
         }
@@ -43,7 +43,7 @@ extension Reactive where Base: NSOutlineView {
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellProvider<OutlineNode>, OutlineRowProvider<OutlineNode>?)
         -> Disposable
-        where OutlineNode.NodeType == OutlineNode, Source.Element == OutlineNode {
+        where Source.Element == OutlineNode {
         return { viewForItem, rowForItem in
             let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(viewForItem: viewForItem)
             if let rowForItem {
@@ -56,7 +56,7 @@ extension Reactive where Base: NSOutlineView {
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellProvider<OutlineNode>)
         -> Disposable
-        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        where Source.Element == [OutlineNode] {
         return { viewForItem in
             self.nodes(source: source)(viewForItem, nil)
         }
@@ -65,7 +65,7 @@ extension Reactive where Base: NSOutlineView {
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellProvider<OutlineNode>, OutlineRowProvider<OutlineNode>?)
         -> Disposable
-        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        where Source.Element == [OutlineNode] {
         return { viewForItem, rowForItem in
             let adapter = RxNSOutlineViewAdapter<OutlineNode>(viewForItem: viewForItem)
             if let rowForItem {
@@ -92,7 +92,7 @@ extension Reactive where Base: NSOutlineView {
     public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellProvider<OutlineNode>)
         -> Disposable
-        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        where Source.Element == [OutlineNode] {
         return { viewForItem in
             self.reorderableNodes(source: source)(viewForItem, nil)
         }
@@ -102,7 +102,7 @@ extension Reactive where Base: NSOutlineView {
     public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellProvider<OutlineNode>, OutlineRowProvider<OutlineNode>?)
         -> Disposable
-        where OutlineNode.NodeType == OutlineNode, Source.Element == [OutlineNode] {
+        where Source.Element == [OutlineNode] {
         return { viewForItem, rowForItem in
             let adapter = RxNSOutlineViewAdapter<OutlineNode>(viewForItem: viewForItem)
             if let rowForItem {
@@ -122,18 +122,29 @@ extension Reactive where Base: NSOutlineView {
         }
     }
 
-    /// Emits source and destination indexes when items have been reordered via drag-and-drop.
-    public func itemMoved() -> ControlEvent<(sourceIndexes: IndexSet, destinationIndex: Int)> {
-        let source: Observable<(sourceIndexes: IndexSet, destinationIndex: Int)>
-        if let emitter = _outlineViewDataSource._requiredMethodsDelegate.object as? _ItemMovedEventEmitting {
-            source = emitter._itemMoved.asObservable()
+    /// Emits move info when items have been reordered via drag-and-drop.
+    /// This supports moving items across any level in the outline hierarchy.
+    public func itemMoved() -> ControlEvent<OutlineMove> {
+        let source: Observable<OutlineMove>
+        if let emitter = _outlineViewDataSource._requiredMethodsDelegate.object as? _OutlineItemMovedEventEmitting {
+            source = emitter._outlineItemMoved.asObservable()
+        } else if let legacyEmitter = _outlineViewDataSource._requiredMethodsDelegate.object as? _ItemMovedEventEmitting {
+            source = legacyEmitter._itemMoved.map { move in
+                OutlineMove(
+                    sourceParentPath: nil,
+                    sourceIndexes: move.sourceIndexes,
+                    destinationParentPath: nil,
+                    destinationIndex: move.destinationIndex,
+                    isDropOnItem: false
+                )
+            }
         } else {
             source = .empty()
         }
         return ControlEvent(events: source)
     }
 
-    /// Emits the new complete nodes array after drag-and-drop reordering.
+    /// Emits the new complete root-level nodes array after drag-and-drop reordering.
     /// Use this to sync your upstream data source (e.g. `BehaviorRelay`).
     public func modelMoved<T>() -> ControlEvent<[T]> {
         let source: Observable<[T]>

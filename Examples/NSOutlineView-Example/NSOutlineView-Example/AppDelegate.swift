@@ -9,7 +9,7 @@ import Cocoa
 import RxAppKit
 import Then
 import UniformTypeIdentifiers
-
+import NSObject_Rx
 import XcodeProj
 
 @main

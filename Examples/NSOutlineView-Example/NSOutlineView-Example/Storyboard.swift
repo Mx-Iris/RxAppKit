@@ -19,11 +19,11 @@ extension NSStoryboard {
     static let main = NSStoryboard(name: "Main", bundle: .main)
 
     func instantiateViewController<Controller: NSViewController>(as controllerType: KeyPath<ViewScenes, Controller.Type>) -> Controller {
-        instantiateController(identifier: Controller.className().removeCurrentModuleNamespace)
+        instantiateController(identifier: .init(describing: Controller.self))
     }
 
     func instantiateWindowController<Controller: NSWindowController>(as controllerType: KeyPath<WindowScenes, Controller.Type>) -> Controller {
-        instantiateController(identifier: Controller.className().removeCurrentModuleNamespace)
+        instantiateController(identifier: .init(describing: Controller.self))
     }
 }
 extension String {

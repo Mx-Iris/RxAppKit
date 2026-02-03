@@ -10,7 +10,7 @@ import XcodeProj
 import RxAppKit
 import AppKit
 
-class FileNode: OutlineNodeType, Hashable, Differentiable {
+final class FileNode: OutlineNodeType, Hashable, Differentiable {
     private let fileElement: PBXFileElement
 
     var name: String? { fileElement.name }

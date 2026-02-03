@@ -10,7 +10,7 @@ import XcodeProj
 import RxSwift
 import RxCocoa
 import RxAppKit
-
+import NSObject_Rx
 
 class MainViewController: NSViewController {
     @ViewLoading @IBOutlet var outlineView: NSOutlineView
@@ -41,20 +41,17 @@ class MainViewController: NSViewController {
             return outlineCellView
         }
         .disposed(by: rx.disposeBag)
-        
+
         outlineView.rx.setDelegate(self).disposed(by: rx.disposeBag)
         outlineView.rowHeight = 30
     }
 }
 
-extension MainViewController: NSOutlineViewDelegate {
-    
-}
-
+extension MainViewController: NSOutlineViewDelegate {}
 
 class OutlineCellView: NSTableCellView {
     @IBOutlet var nameLabel: NSTextField!
-    @IBOutlet weak var iconImageView: NSImageView!
+    @IBOutlet var iconImageView: NSImageView!
     static var identifier: NSUserInterfaceItemIdentifier {
         .init(className)
     }
