@@ -14,12 +14,12 @@ open class RxNSTableViewArrayAnimatedAdapter<T: Differentiable>: TableViewArrayA
     public init(
         animationConfiguration: TableViewAnimationConfiguration,
         decideViewTransition: @escaping DecideViewTransition = { _, _, _ in .animated },
-        cellProvider: @escaping TableViewArrayAdapter<T>.CellViewProvider,
-        rowProvider: @escaping TableViewArrayAdapter<T>.RowViewProvider
+        cellViewProvider: @escaping TableViewArrayAdapter<T>.CellViewProvider,
+        rowViewProvider: @escaping TableViewArrayAdapter<T>.RowViewProvider
     ) {
         self.animationConfiguration = animationConfiguration
         self.decideViewTransition =  decideViewTransition
-        super.init(cellProvider: cellProvider, rowProvider: rowProvider)
+        super.init(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
     }
     /// there is no longer limitation to load initial sections with reloadData
     /// but it is kept as a feature everyone got used to

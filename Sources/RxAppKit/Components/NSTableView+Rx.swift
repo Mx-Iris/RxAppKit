@@ -5,15 +5,15 @@ import DifferenceKit
 
 extension NSTableView: HasDoubleAction {}
 
-public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
-
-public typealias TableIndex = (row: Int, column: Int)
-
-public typealias TableCellProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
-
-public typealias TableRowProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
 extension Reactive where Base: NSTableView {
+    public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
+    
+    public typealias TableIndex = (row: Int, column: Int)
+    
+    public typealias TableCellViewProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: Item) -> NSView?
+    
+    public typealias TableRowViewProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
     private var _tableViewDelegate: RxNSTableViewDelegateProxy {
         .proxy(for: base)
@@ -32,7 +32,7 @@ extension Reactive where Base: NSTableView {
     }
 
     public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping TableCellProvider<Element>)
+        -> (_ cellProvider: @escaping TableCellViewProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider in
             return self.items(source)(cellProvider, nil)
@@ -40,10 +40,10 @@ extension Reactive where Base: NSTableView {
     }
 
     public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping TableCellProvider<Element>, _ rowProvider: TableRowProvider<Element>?)
+        -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?)
         -> Disposable where Source.Element == [Element] {
-        return { cellProvider, rowProvider in
-            let adapter = RxNSTableViewArrayReloadAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)
+        return { cellViewProvider, rowViewProvider in
+            let adapter = RxNSTableViewArrayReloadAdapter<Element>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
             return self.items(adapter: adapter)(source)
         }
     }
@@ -63,7 +63,7 @@ extension Reactive where Base: NSTableView {
 
     /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
     public func reorderableItems<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping TableCellProvider<Element>)
+        -> (_ cellProvider: @escaping TableCellViewProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider in
             self.reorderableItems(source)(cellProvider, nil)
@@ -72,10 +72,10 @@ extension Reactive where Base: NSTableView {
 
     /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
     public func reorderableItems<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping TableCellProvider<Element>, _ rowProvider: TableRowProvider<Element>?)
+        -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?)
         -> Disposable where Source.Element == [Element] {
-        return { cellProvider, rowProvider in
-            let adapter = RxNSReorderableTableViewArrayReloadAdapter<Element>(cellProvider: cellProvider, rowProvider: rowProvider)
+        return { cellViewProvider, rowViewProvider in
+            let adapter = RxNSReorderableTableViewArrayReloadAdapter<Element>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
             return self.reorderableItems(adapter: adapter)(source)
         }
     }
@@ -214,7 +214,7 @@ extension NSTableView {
         column >= 0 && column < numberOfColumns
     }
 
-    func isValidTableIndex(_ tableIndex: TableIndex) -> Bool {
+    func isValidTableIndex(_ tableIndex: Reactive<NSTableView>.TableIndex) -> Bool {
         isValidRowIndex(tableIndex.row) && isValidColumnIndex(tableIndex.column)
     }
 }

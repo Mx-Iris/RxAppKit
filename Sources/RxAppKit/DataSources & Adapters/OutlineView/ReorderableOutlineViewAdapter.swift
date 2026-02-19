@@ -57,7 +57,7 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
 
     open override func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         guard let node = item as? OutlineNode else {
-            if let rootNode {
+            if rootNode != nil {
                 return 1
             }
             return currentChildren(of: nil).count
@@ -95,14 +95,11 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
         switch (lhs, rhs) {
         case (nil, nil):
             return true
-        case let (l?, r?):
-            if let lk = nodeKey(l), let rk = nodeKey(r) {
-                return lk == rk
+        case let (lhs?, rhs?):
+            if let lhsKey = nodeKey(lhs), let rhsKey = nodeKey(rhs) {
+                return lhsKey == rhsKey
             }
-            if let lObj = l as? AnyObject, let rObj = r as? AnyObject {
-                return lObj === rObj
-            }
-            return false
+            return (lhs as AnyObject) === (rhs as AnyObject)
         default:
             return false
         }

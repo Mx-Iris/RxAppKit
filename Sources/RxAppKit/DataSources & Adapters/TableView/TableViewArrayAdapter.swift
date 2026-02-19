@@ -6,17 +6,17 @@ open class TableViewArrayAdapter<T>: NSObject, NSTableViewDataSource, NSTableVie
     public typealias CellViewProvider = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: T) -> NSView?
     public typealias RowViewProvider = (_ tableView: NSTableView, _ row: Int, _ items: [T]) -> NSTableRowView
 
-    public let cellProvider: CellViewProvider
-    public let rowProvider: RowViewProvider?
+    public let cellViewProvider: CellViewProvider
+    public let rowViewProvider: RowViewProvider?
 
     public internal(set) var items: [T] = []
 
     public init(
-        cellProvider: @escaping CellViewProvider,
-        rowProvider: RowViewProvider?
+        cellViewProvider: @escaping CellViewProvider,
+        rowViewProvider: RowViewProvider?
     ) {
-        self.cellProvider = cellProvider
-        self.rowProvider = rowProvider
+        self.cellViewProvider = cellViewProvider
+        self.rowViewProvider = rowViewProvider
         super.init()
     }
 
@@ -25,11 +25,11 @@ open class TableViewArrayAdapter<T>: NSObject, NSTableViewDataSource, NSTableVie
     }
 
     open func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        return cellProvider(tableView, tableColumn, row, items[row])
+        return cellViewProvider(tableView, tableColumn, row, items[row])
     }
 
     open func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-        return rowProvider?(tableView, row, [items[row]])
+        return rowViewProvider?(tableView, row, [items[row]])
     }
 
     public func model(at row: Int) throws -> Any {
