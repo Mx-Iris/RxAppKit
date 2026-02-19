@@ -100,16 +100,19 @@ extension NSOutlineView {
             }
 
             beginUpdates()
+
+            // Snapshot items to reload BEFORE updating data source,
+            // because the outline view only recognizes old item references.
+            let itemsToReload = changeset.elementUpdated.map { child($0.element, ofItem: parent) }
+
             setData(changeset.data)
 
             if !changeset.elementDeleted.isEmpty {
                 removeItems(at: IndexSet(changeset.elementDeleted.map { $0.element }), inParent: parent, withAnimation: deleteItemsAnimation())
             }
 
-            if !changeset.elementUpdated.isEmpty {
-                let indices = IndexSet(changeset.elementUpdated.map { $0.element })
-                removeItems(at: indices, inParent: parent, withAnimation: deleteItemsAnimation())
-                insertItems(at: indices, inParent: parent, withAnimation: insertItemsAnimation())
+            for item in itemsToReload {
+                reloadItem(item)
             }
 
             if !changeset.elementMoved.isEmpty {
