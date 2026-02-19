@@ -23,7 +23,7 @@ private class PageControllDelegateNotSet: NSObject, NSPageControllerDelegate {
 
 private let pageControllerDelegateNotSet = PageControllDelegateNotSet()
 
-class RxNSPageControllDelegateProxy: DelegateProxy<NSPageController, NSPageControllerDelegate>, RequiredMethodDelegateProxyType, NSPageControllerDelegate {
+class RxNSPageControllDelegateProxy: DelegateProxy<NSPageController, NSPageControllerDelegate>, RequiredMethodsDelegateProxyType, NSPageControllerDelegate {
     public private(set) weak var pageController: NSPageController?
 
     init(pageControll: NSPageController) {

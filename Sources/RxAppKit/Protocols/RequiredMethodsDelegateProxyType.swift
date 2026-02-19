@@ -4,14 +4,14 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-protocol RequiredMethodDelegateProxyType: DelegateProxyType where Delegate: AnyObject {
+protocol RequiredMethodsDelegateProxyType: DelegateProxyType where Delegate: AnyObject {
     
     var _requiredMethodsDelegate: ObjectContainer<Delegate> { get }
     
     func setRequiredMethodsDelegate(_ requiredMethodsDelegate: Delegate?, retainDelegate: Bool)
 }
 
-extension RequiredMethodDelegateProxyType {
+extension RequiredMethodsDelegateProxyType {
     func setRequiredMethodsDelegate(_ requiredMethodsDelegate: Delegate?, retainDelegate: Bool) {
         guard let requiredMethodsDelegate else {
             _requiredMethodsDelegate.setObject(nil)

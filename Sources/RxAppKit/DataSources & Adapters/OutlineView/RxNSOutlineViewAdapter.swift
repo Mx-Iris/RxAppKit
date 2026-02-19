@@ -8,7 +8,6 @@ open class RxNSOutlineViewRootNodeAdapter<OutlineNode: OutlineNodeType & Hashabl
 
     open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSOutlineViewRootNodeAdapter<OutlineNode>, rootNode) in
-            dataSource.resetReorderingState()
             dataSource.rootNode = rootNode
             outlineView.reloadData()
         }.on(observedEvent)
@@ -20,18 +19,23 @@ open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Diff
 
     open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSOutlineViewAdapter<OutlineNode>, newNodes) in
-            // Skip reload when data is unchanged (e.g. reorder feedback loop)
-            guard dataSource.nodes != newNodes || dataSource.hasReorderingOverrides else { return }
-            dataSource.resetReorderingState()
             dataSource.nodes = newNodes
             outlineView.reloadData()
         }.on(observedEvent)
     }
 }
 
-extension Int {
-    fileprivate var asIndexSet: IndexSet {
-        IndexSet(integer: self)
+open class RxNSReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Differentiable>: ReorderableOutlineViewAdapter<OutlineNode>, RxNSOutlineViewDataSourceType {
+    public typealias Element = [OutlineNode]
+
+    open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
+        Binder<Element>(self) { (dataSource: RxNSReorderableOutlineViewAdapter<OutlineNode>, newNodes) in
+            // Skip reload when data is unchanged (e.g. reorder feedback loop)
+            guard dataSource.nodes != newNodes || dataSource.hasReorderingOverrides else { return }
+            dataSource.resetReorderingState()
+            dataSource.nodes = newNodes
+            outlineView.reloadData()
+        }.on(observedEvent)
     }
 }
 
@@ -100,6 +104,12 @@ extension NSOutlineView {
 
             if !changeset.elementDeleted.isEmpty {
                 removeItems(at: IndexSet(changeset.elementDeleted.map { $0.element }), inParent: parent, withAnimation: deleteItemsAnimation())
+            }
+
+            if !changeset.elementUpdated.isEmpty {
+                let indices = IndexSet(changeset.elementUpdated.map { $0.element })
+                removeItems(at: indices, inParent: parent, withAnimation: deleteItemsAnimation())
+                insertItems(at: indices, inParent: parent, withAnimation: insertItemsAnimation())
             }
 
             if !changeset.elementMoved.isEmpty {

@@ -12,3 +12,15 @@ public protocol RxNSOutlineViewDataSourceType /*: NSOutlineViewDataSource */ {
     /// - parameter observedEvent: Event
     func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>)
 }
+
+/// Marks data source as `NSOutlineView` reorderable reactive data source.
+public protocol RxNSOutlineViewReorderableDataSourceType: AnyObject /*: NSOutlineViewDataSource */ {
+    /// Register the outline view for internal drag-and-drop reordering.
+    func setupReordering(for outlineView: NSOutlineView)
+
+    /// Emits detailed move info when items have been reordered via drag-and-drop.
+    var outlineItemMoved: PublishSubject<OutlineMove> { get }
+
+    /// Emits the new complete root-level nodes array (type-erased) after root-level reordering.
+    var modelMoved: PublishSubject<[Any]> { get }
+}

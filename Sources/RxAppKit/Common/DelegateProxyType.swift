@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-extension RequiredMethodDelegateProxyType {
+extension RequiredMethodsDelegateProxyType {
     static func installRequiredMethodDelegate(_ requiredMethodDelegate: Delegate, retainDelegate: Bool, onProxyForObject object: ParentObject) -> Disposable {
         let proxy = self.proxy(for: object)
         proxy.setRequiredMethodsDelegate(requiredMethodDelegate, retainDelegate: retainDelegate)
@@ -28,7 +28,7 @@ extension ObservableType {
         return _subscribeProxyDataSource(ofObject: object, proxy: proxy, setDelegateSubscription: setDelegateSubscription, binding: binding)
     }
 
-    func subscribeProxyDataSource<DelegateProxy: RequiredMethodDelegateProxyType>(
+    func subscribeProxyDataSource<DelegateProxy: RequiredMethodsDelegateProxyType>(
         ofObject object: DelegateProxy.ParentObject,
         dataSource: DelegateProxy.Delegate,
         retainDataSource: Bool,

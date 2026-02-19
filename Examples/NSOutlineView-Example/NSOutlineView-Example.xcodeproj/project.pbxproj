@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		E90E93322A0932FF00CF5B96 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90E93312A0932FF00CF5B96 /* AppDelegate.swift */; };
-		E90E93342A0932FF00CF5B96 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90E93332A0932FF00CF5B96 /* ViewController.swift */; };
 		E90E93362A09330000CF5B96 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E90E93352A09330000CF5B96 /* Assets.xcassets */; };
 		E90E93392A09330000CF5B96 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E90E93372A09330000CF5B96 /* Main.storyboard */; };
 		E90E93452A09334E00CF5B96 /* XcodeProj in Frameworks */ = {isa = PBXBuildFile; productRef = E90E93442A09334E00CF5B96 /* XcodeProj */; };
@@ -25,7 +24,6 @@
 /* Begin PBXFileReference section */
 		E90E932E2A0932FF00CF5B96 /* NSOutlineView-Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "NSOutlineView-Example.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E90E93312A0932FF00CF5B96 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		E90E93332A0932FF00CF5B96 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		E90E93352A09330000CF5B96 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E90E93382A09330000CF5B96 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		E9D3FA6F2A0AA7F800A91355 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
@@ -75,7 +73,6 @@
 				E9D3FA712A0AA80200A91355 /* MainViewController.swift */,
 				E9D3FA772A0BD18300A91355 /* FileNode.swift */,
 				E9D3FA792A0BD67300A91355 /* OutlineCellView.xib */,
-				E90E93332A0932FF00CF5B96 /* ViewController.swift */,
 				E9D3FA732A0AA9DA00A91355 /* Storyboard.swift */,
 				E90E93352A09330000CF5B96 /* Assets.xcassets */,
 				E90E93372A09330000CF5B96 /* Main.storyboard */,
@@ -172,7 +169,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E90E93342A0932FF00CF5B96 /* ViewController.swift in Sources */,
 				E9D3FA742A0AA9DA00A91355 /* Storyboard.swift in Sources */,
 				E90E93322A0932FF00CF5B96 /* AppDelegate.swift in Sources */,
 				E9D3FA702A0AA7F800A91355 /* MainWindowController.swift in Sources */,

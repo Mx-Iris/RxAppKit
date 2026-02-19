@@ -41,5 +41,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension UTType {
-    static let xcodeProj = UTType(importedAs: "com.apple.dt.Xcode")
+    static let xcodeProj = UTType("com.apple.xcode.project")!
 }

@@ -13,3 +13,15 @@ public protocol RxNSTableViewDataSourceType /*: NSTableViewDataSource */ {
     func tableView(_ tableView: NSTableView, observedEvent: Event<Element>)
 }
 
+/// Marks data source as `NSTableView` reorderable reactive data source.
+public protocol RxNSTableViewReorderableDataSourceType: AnyObject /*: NSTableViewDataSource */ {
+    /// Register the table view for internal drag-and-drop reordering.
+    func setupReordering(for tableView: NSTableView)
+
+    /// Emits source and destination indexes when items have been reordered via drag-and-drop.
+    var itemMoved: PublishSubject<(sourceIndexes: IndexSet, destinationIndex: Int)> { get }
+
+    /// Emits the new complete items array (type-erased) after reordering.
+    var modelMoved: PublishSubject<[Any]> { get }
+}
+

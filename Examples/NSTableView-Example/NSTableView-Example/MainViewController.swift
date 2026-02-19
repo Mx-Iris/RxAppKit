@@ -100,13 +100,13 @@ class MainViewController: NSViewController {
         .disposed(by: disposeBag)
         
         
-        tableView.rx.didClick
+        tableView.rx.itemClicked()
             .subscribe { (clickedRow: Int, clickedColumn: Int) in
                 print(clickedRow, clickedColumn)
             }
             .disposed(by: disposeBag)
         
-        tableView.rx.didDoubleClick
+        tableView.rx.itemDoubleClicked()
             .subscribe { [weak self] (clickedRow: Int, clickedColumn: Int) in
                 guard let self = self, clickedRow != -1, clickedColumn != -1 else { return }
                 let data = self.datas[clickedRow]
@@ -117,7 +117,7 @@ class MainViewController: NSViewController {
         tableView.rx.setDelegate(self)
             .disposed(by: disposeBag)
         
-        tableView.rx.didAddRow
+        tableView.rx.didAddRow()
             .subscribe(with: self) { target, row in
                 print("didAddRow", row.row)
             }

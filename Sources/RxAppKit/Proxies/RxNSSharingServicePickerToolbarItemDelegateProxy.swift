@@ -10,7 +10,7 @@ extension NSSharingServicePickerToolbarItem: @retroactive HasDelegate {
 }
 
 @available(macOS 10.15, *)
-class RxNSSharingServicePickerToolbarItemDelegateProxy: DelegateProxy<NSSharingServicePickerToolbarItem, NSSharingServicePickerToolbarItemDelegate>, RequiredMethodDelegateProxyType, NSSharingServicePickerToolbarItemDelegate {
+class RxNSSharingServicePickerToolbarItemDelegateProxy: DelegateProxy<NSSharingServicePickerToolbarItem, NSSharingServicePickerToolbarItemDelegate>, RequiredMethodsDelegateProxyType, NSSharingServicePickerToolbarItemDelegate {
     
     public private(set) weak var sharingServicePickerToolbarItem: NSSharingServicePickerToolbarItem?
     

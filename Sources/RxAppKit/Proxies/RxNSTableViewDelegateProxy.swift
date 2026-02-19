@@ -6,7 +6,7 @@ extension NSTableView: @retroactive HasDelegate {
     public typealias Delegate = NSTableViewDelegate
 }
 
-class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate>, RequiredMethodDelegateProxyType, NSTableViewDelegate {
+class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate>, RequiredMethodsDelegateProxyType, NSTableViewDelegate {
     public private(set) weak var tableView: NSTableView?
 
     public init(tableView: ParentObject) {

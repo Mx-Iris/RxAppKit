@@ -8,7 +8,7 @@ extension NSToolbar: @retroactive HasDelegate {
     public typealias Delegate = NSToolbarDelegate
 }
 
-class RxNSToolbarDelegateProxy: DelegateProxy<NSToolbar, NSToolbarDelegate>, RequiredMethodDelegateProxyType, NSToolbarDelegate {
+class RxNSToolbarDelegateProxy: DelegateProxy<NSToolbar, NSToolbarDelegate>, RequiredMethodsDelegateProxyType, NSToolbarDelegate {
     public private(set) weak var toolbar: NSToolbar?
     
     public init(toolbar: ParentObject) {
