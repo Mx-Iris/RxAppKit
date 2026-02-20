@@ -21,6 +21,8 @@ open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTa
 
     open var reorderingHandlers = ReorderingHandlers()
 
+    open var isReorderingEnabled: Bool = true
+
     public let itemMoved = PublishSubject<(sourceIndexes: IndexSet, destinationIndex: Int)>()
     public let modelMoved = PublishSubject<[Any]>()
 
@@ -30,6 +32,37 @@ open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTa
 
     private var draggingRowIndexes: IndexSet = []
     private var isReorderingRegistered = false
+    private var itemsOverride: [T]?
+
+    private var currentItems: [T] {
+        itemsOverride ?? items
+    }
+
+    var hasItemsOverride: Bool {
+        itemsOverride != nil
+    }
+
+    func resetReorderingState() {
+        itemsOverride = nil
+    }
+
+    // MARK: - Data (overridden to use currentItems)
+
+    open override func numberOfRows(in tableView: NSTableView) -> Int {
+        currentItems.count
+    }
+
+    open override func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        cellViewProvider(tableView, tableColumn, row, currentItems[row])
+    }
+
+    open override func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        rowViewProvider?(tableView, row, [currentItems[row]])
+    }
+
+    public override func model(at row: Int) throws -> Any {
+        currentItems[row]
+    }
 
     /// Register the table view for internal drag-and-drop reordering.
     /// Called automatically by `rx.reorderableItems(adapter:)` when using Rx bindings.
@@ -43,6 +76,7 @@ open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTa
     // MARK: - Drag & Drop Data Source
 
     @objc open func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
+        guard isReorderingEnabled else { return nil }
         let item = NSPasteboardItem()
         item.setString(String(row), forType: Self.reorderPasteboardType)
         return item
@@ -57,7 +91,7 @@ open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTa
     @objc open func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
         guard !draggingRowIndexes.isEmpty else { return false }
 
-        let draggedItems = draggingRowIndexes.map { items[$0] }
+        let draggedItems = draggingRowIndexes.map { currentItems[$0] }
         let sortedIndexes = draggingRowIndexes.sorted(by: >)
 
         // Calculate the target index after removing dragged items
@@ -70,35 +104,26 @@ open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTa
 
         reorderingHandlers.willReorder?(draggedItems, targetRow)
 
-        // Remove dragged items (from high to low to preserve indices)
+        // Build new items array via override (model remains unchanged for Rx round-trip)
+        var newItems = currentItems
         for index in sortedIndexes {
-            items.remove(at: index)
+            newItems.remove(at: index)
         }
-
-        // Insert at target position
         for (offset, item) in draggedItems.enumerated() {
-            items.insert(item, at: targetRow + offset)
+            newItems.insert(item, at: targetRow + offset)
         }
+        itemsOverride = newItems
 
-        // Animate row moves
-        tableView.beginUpdates()
-        let sortedAscending = draggingRowIndexes.sorted()
-        for (moveOffset, oldIndex) in sortedAscending.enumerated() {
-            let adjustedTarget = targetRow + moveOffset
-            tableView.moveRow(at: oldIndex, to: adjustedTarget)
-        }
-        tableView.endUpdates()
-
-        reorderingHandlers.didReorder?(items)
+        reorderingHandlers.didReorder?(currentItems)
         itemMoved.onNext((sourceIndexes: draggingRowIndexes, destinationIndex: targetRow))
-        modelMoved.onNext(items.map { $0 as Any })
+        modelMoved.onNext(currentItems.map { $0 as Any })
         draggingRowIndexes = []
         return true
     }
 
     @objc(tableView:draggingSession:willBeginAtPoint:forRowIndexes:)
     open func tableView(_ tableView: NSTableView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forRowIndexes rowIndexes: IndexSet) {
-        var allowedItems = rowIndexes.map { items[$0] }
+        var allowedItems = rowIndexes.map { currentItems[$0] }
         if let canReorder = reorderingHandlers.canReorder {
             allowedItems = canReorder(allowedItems)
         }

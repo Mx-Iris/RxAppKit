@@ -1,7 +1,6 @@
 import Foundation
 
 public protocol OutlineNodeType {
-    var parent: Self? { get }
     var children: [Self] { get }
 }
 
@@ -127,5 +126,35 @@ extension OutlineMove {
             updatedDestination.insert(n, at: clamped + offset)
         }
         set(updatedDestination, at: destinationParentPath)
+    }
+
+    /// Applies this move to the root-level nodes array only.
+    ///
+    /// This is a convenience for root-level-only reordering (where both
+    /// `sourceParentPath` and `destinationParentPath` are `nil`).
+    /// Does nothing if the move involves non-root parents.
+    ///
+    /// - Parameter roots: The root-level nodes array to modify in place.
+    public func applyToRoots<Node>(_ roots: inout [Node]) {
+        guard sourceParentPath == nil, destinationParentPath == nil else { return }
+
+        let sortedAscending = sourceIndexes.sorted()
+        guard !sortedAscending.isEmpty else { return }
+        guard sortedAscending.allSatisfy({ $0 >= 0 && $0 < roots.count }) else { return }
+
+        var targetIndex = destinationIndex
+        for index in sourceIndexes.sorted(by: >) where index < targetIndex {
+            targetIndex -= 1
+        }
+
+        let moved = sortedAscending.map { roots[$0] }
+        for index in sourceIndexes.sorted(by: >) {
+            roots.remove(at: index)
+        }
+
+        let clamped = max(0, min(targetIndex, roots.count))
+        for (offset, n) in moved.enumerated() {
+            roots.insert(n, at: clamped + offset)
+        }
     }
 }

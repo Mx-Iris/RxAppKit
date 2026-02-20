@@ -24,9 +24,13 @@ open class RxNSReorderableTableViewArrayReloadAdapter<T: Differentiable>: Reorde
 
     open func tableView(_ tableView: NSTableView, observedEvent: Event<Element>) {
         Binder(self) { dataSource, newItems in
-            let oldItems = dataSource.items
-            let newItems = newItems
-            let changeset = StagedChangeset(source: oldItems, target: newItems)
+            let hadOverride = dataSource.hasItemsOverride
+            dataSource.resetReorderingState()
+            let changeset = StagedChangeset(source: dataSource.items, target: newItems)
+            if changeset.isEmpty {
+                if hadOverride { tableView.reloadData() }
+                return
+            }
             tableView.reload(using: changeset, with: []) { _ in
                 return true
             } setData: {

@@ -19,8 +19,12 @@ open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Diff
 
     open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSOutlineViewAdapter<OutlineNode>, newNodes) in
-            dataSource.nodes = newNodes
-            outlineView.reloadData()
+            let changeset = StagedChangeset(source: dataSource.nodes, target: newNodes)
+            outlineView.reload(using: changeset, with: []) { _ in
+                return true
+            } setData: {
+                dataSource.nodes = $0
+            }
         }.on(observedEvent)
     }
 }
@@ -30,11 +34,19 @@ open class RxNSReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType & Hash
 
     open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSReorderableOutlineViewAdapter<OutlineNode>, newNodes) in
-            // Skip reload when data is unchanged (e.g. reorder feedback loop)
-            guard dataSource.nodes != newNodes || dataSource.hasReorderingOverrides else { return }
+            let hadOverrides = dataSource.hasReorderingOverrides
+            guard dataSource.nodes != newNodes || hadOverrides else { return }
             dataSource.resetReorderingState()
-            dataSource.nodes = newNodes
-            outlineView.reloadData()
+            let changeset = StagedChangeset(source: dataSource.nodes, target: newNodes)
+            if changeset.isEmpty {
+                if hadOverrides { outlineView.reloadData() }
+                return
+            }
+            outlineView.reload(using: changeset, with: []) { _ in
+                return true
+            } setData: {
+                dataSource.nodes = $0
+            }
         }.on(observedEvent)
     }
 }

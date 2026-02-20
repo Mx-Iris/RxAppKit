@@ -22,6 +22,10 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
 
     open var reorderingHandlers = ReorderingHandlers()
 
+    open var isReorderingEnabled: Bool = true
+
+    open var isRootLevelReorderingOnly: Bool = false
+
     public let outlineItemMoved = PublishSubject<OutlineMove>()
     public let modelMoved = PublishSubject<[Any]>()
 
@@ -30,6 +34,7 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     }
 
     private var childOverrides: [AnyHashable: [OutlineNode]] = [:]
+    private var rootNodesOverride: [OutlineNode]?
     private var draggingChildIndexes: IndexSet = []
     private var draggingParentItem: OutlineNode?
     private var isReorderingRegistered = false
@@ -44,11 +49,12 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     }
 
     var hasReorderingOverrides: Bool {
-        !childOverrides.isEmpty
+        !childOverrides.isEmpty || rootNodesOverride != nil
     }
 
     func resetReorderingState() {
         childOverrides.removeAll()
+        rootNodesOverride = nil
         draggingChildIndexes = []
         draggingParentItem = nil
     }
@@ -111,7 +117,7 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     }
 
     private func currentChildren(of parent: OutlineNode?) -> [OutlineNode] {
-        guard let parent else { return nodes }
+        guard let parent else { return rootNodesOverride ?? nodes }
         if let key = nodeKey(parent), let override = childOverrides[key] {
             return override
         }
@@ -120,7 +126,7 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
 
     private func setChildren(_ children: [OutlineNode], for parent: OutlineNode?) {
         guard let parent else {
-            nodes = children
+            rootNodesOverride = children
             return
         }
         guard let key = nodeKey(parent) else { return }
@@ -166,9 +172,18 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     // MARK: - Drag & Drop Data Source
 
     @objc open func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> (any NSPasteboardWriting)? {
+        guard isReorderingEnabled else { return nil }
         guard let node = item as? OutlineNode else { return nil }
         if let rootNode, isSameNode(node, rootNode) {
             return nil
+        }
+        if isRootLevelReorderingOnly {
+            let parent = outlineView.parent(forItem: item)
+            if rootNode != nil {
+                guard let parentNode = parent as? OutlineNode, isSameNode(parentNode, rootNode) else { return nil }
+            } else {
+                guard parent == nil else { return nil }
+            }
         }
         let pbItem = NSPasteboardItem()
         let childIndex = outlineView.childIndex(forItem: node)
@@ -180,6 +195,14 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
         guard !draggingChildIndexes.isEmpty else { return [] }
         guard info.draggingSource as? NSOutlineView === outlineView else { return [] }
         if rootNode != nil, item == nil { return [] }
+
+        if isRootLevelReorderingOnly {
+            if rootNode != nil {
+                guard let destNode = item as? OutlineNode, isSameNode(destNode, rootNode) else { return [] }
+            } else {
+                guard item == nil else { return [] }
+            }
+        }
 
         let destinationParent = item as? OutlineNode
         let sourceParent = draggingParentItem
@@ -263,21 +286,10 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
             setChildren(destinationChildren, for: destinationParent)
         }
 
-        outlineView.beginUpdates()
-        if isSameNode(sourceParent, destinationParent) {
-            outlineView.removeItems(at: draggingChildIndexes, inParent: sourceParent, withAnimation: .effectGap)
-            let insertRange = insertionIndex ..< (insertionIndex + draggedNodes.count)
-            outlineView.insertItems(at: IndexSet(integersIn: insertRange), inParent: sourceParent, withAnimation: .effectGap)
-        } else {
-            outlineView.removeItems(at: draggingChildIndexes, inParent: sourceParent, withAnimation: .effectGap)
-            let insertRange = dropTargetIndex ..< (dropTargetIndex + draggedNodes.count)
-            outlineView.insertItems(at: IndexSet(integersIn: insertRange), inParent: destinationParent, withAnimation: .effectGap)
-        }
-        outlineView.endUpdates()
-
         if isRootOnlyMove {
-            reorderingHandlers.didReorder?(nodes)
-            modelMoved.onNext(nodes.map { $0 as Any })
+            let newRootNodes = currentChildren(of: nil)
+            reorderingHandlers.didReorder?(newRootNodes)
+            modelMoved.onNext(newRootNodes.map { $0 as Any })
         }
 
         let move = OutlineMove(

@@ -18,6 +18,9 @@ public protocol RxNSTableViewReorderableDataSourceType: AnyObject /*: NSTableVie
     /// Register the table view for internal drag-and-drop reordering.
     func setupReordering(for tableView: NSTableView)
 
+    /// Controls whether drag-and-drop reordering is currently allowed.
+    var isReorderingEnabled: Bool { get set }
+
     /// Emits source and destination indexes when items have been reordered via drag-and-drop.
     var itemMoved: PublishSubject<(sourceIndexes: IndexSet, destinationIndex: Int)> { get }
 

@@ -102,7 +102,7 @@ extension Reactive where Base: NSOutlineView {
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
             adapter.setupReordering(for: self.base)
-            let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak outlineView = base] (_: RxNSOutlineViewReorderableDataSourceProxy, event) in
+            let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak outlineView = base] (_: RxNSOutlineViewDataSourceProxy, event) in
                 guard let outlineView = outlineView else { return }
                 adapter.outlineView(outlineView, observedEvent: event)
             }
@@ -120,6 +120,24 @@ extension Reactive where Base: NSOutlineView {
                 ?? Observable.empty()
         }
         return ControlEvent(events: source)
+    }
+
+    /// Controls whether drag-and-drop reordering is allowed on the reorderable adapter.
+    public var isReorderingEnabled: Binder<Bool> {
+        Binder(base) { view, enabled in
+            let adapter = (view.dataSource as? RxNSOutlineViewDataSourceProxy)?._requiredMethodsDelegate.object
+            (adapter as? RxNSOutlineViewReorderableDataSourceType)?.isReorderingEnabled = enabled
+        }
+    }
+
+    /// When bound to `true`, only root-level nodes can be dragged and they can
+    /// only be reordered within the root level — children cannot be promoted and
+    /// roots cannot be demoted.
+    public var isRootLevelReorderingOnly: Binder<Bool> {
+        Binder(base) { view, value in
+            let adapter = (view.dataSource as? RxNSOutlineViewDataSourceProxy)?._requiredMethodsDelegate.object
+            (adapter as? RxNSOutlineViewReorderableDataSourceType)?.isRootLevelReorderingOnly = value
+        }
     }
 
     /// Emits the new complete root-level nodes array after drag-and-drop reordering.

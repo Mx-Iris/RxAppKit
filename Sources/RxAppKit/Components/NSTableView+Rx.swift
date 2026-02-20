@@ -86,7 +86,7 @@ extension Reactive where Base: NSTableView {
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
             adapter.setupReordering(for: base)
-            let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak tableView = base] (_: RxNSTableViewReorderableDataSourceProxy, event) in
+            let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak tableView = base] (_: RxNSTableViewDataSourceProxy, event) in
                 guard let tableView else { return }
                 adapter.tableView(tableView, observedEvent: event)
             }
@@ -103,6 +103,14 @@ extension Reactive where Base: NSTableView {
                 ?? Observable.empty()
         }
         return ControlEvent(events: source)
+    }
+
+    /// Controls whether drag-and-drop reordering is allowed on the reorderable adapter.
+    public var isReorderingEnabled: Binder<Bool> {
+        Binder(base) { view, enabled in
+            let adapter = (view.dataSource as? RxNSTableViewDataSourceProxy)?._requiredMethodsDelegate.object
+            (adapter as? RxNSTableViewReorderableDataSourceType)?.isReorderingEnabled = enabled
+        }
     }
 
     /// Emits the new complete items array after drag-and-drop reordering.

@@ -18,6 +18,13 @@ public protocol RxNSOutlineViewReorderableDataSourceType: AnyObject /*: NSOutlin
     /// Register the outline view for internal drag-and-drop reordering.
     func setupReordering(for outlineView: NSOutlineView)
 
+    /// Controls whether drag-and-drop reordering is currently allowed.
+    var isReorderingEnabled: Bool { get set }
+
+    /// When `true`, only root-level nodes can be dragged and they can only be
+    /// reordered within the root level (no promoting children or demoting roots).
+    var isRootLevelReorderingOnly: Bool { get set }
+
     /// Emits detailed move info when items have been reordered via drag-and-drop.
     var outlineItemMoved: PublishSubject<OutlineMove> { get }
 
