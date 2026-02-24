@@ -29,6 +29,7 @@ extension Reactive where Base: HasTargeAction {
         _controlProperty(forKeyPath: keyPath)
     }
 
+    @_disfavoredOverload
     public subscript<Property>(dynamicMember keyPath: ReferenceWritableKeyPath<Base, Property>) -> ControlEvent<Property> where Base: AnyObject {
         _controlEventForBaseAction { $0[keyPath: keyPath] }
     }
