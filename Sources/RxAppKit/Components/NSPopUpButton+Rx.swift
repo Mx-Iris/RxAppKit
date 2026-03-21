@@ -89,6 +89,7 @@ extension Reactive where Base: NSPopUpButton {
         sectionTitle: @escaping (Section) -> String,
         items: @escaping (Section) -> [Item],
         itemTitle: @escaping (Item) -> String,
+        itemImage: ((Item) -> NSImage?)? = nil,
         itemRepresentedObject: @escaping (Item) -> AnyHashable
     ) -> Binder<[Section]> {
         Binder(base) { popUpButton, sections in
@@ -102,12 +103,13 @@ extension Reactive where Base: NSPopUpButton {
 
                 for item in items(section) {
                     let menuItem = NSMenuItem(title: itemTitle(item), action: nil, keyEquivalent: "")
+                    menuItem.image = itemImage?(item)
                     menuItem.representedObject = itemRepresentedObject(item)
                     popUpButton.menu?.addItem(menuItem)
                 }
             }
 
-            // Restore selection by representedObject
+            // Restore selection by representedObject (skip section headers)
             if let previousRepresentedObject {
                 let index = popUpButton.menu?.items.firstIndex {
                     ($0.representedObject as? AnyHashable) == previousRepresentedObject
@@ -116,8 +118,8 @@ extension Reactive where Base: NSPopUpButton {
                     popUpButton.selectItem(at: index)
                 }
             } else {
-                // Select first selectable item
-                let index = popUpButton.menu?.items.firstIndex { $0.isEnabled && !$0.isSeparatorItem }
+                // Select first item that has a representedObject (i.e. not a section header)
+                let index = popUpButton.menu?.items.firstIndex { $0.representedObject != nil }
                 if let index {
                     popUpButton.selectItem(at: index)
                 }
