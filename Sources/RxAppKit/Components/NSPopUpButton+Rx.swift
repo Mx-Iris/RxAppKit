@@ -81,3 +81,54 @@ extension Reactive where Base: NSPopUpButton {
 //        }
 //    }
 }
+
+@available(macOS 14.0, *)
+extension Reactive where Base: NSPopUpButton {
+    /// Binds section-grouped items to a popup button using NSMenuItem.sectionHeader.
+    public func sectionItems<Section, Item>(
+        sectionTitle: @escaping (Section) -> String,
+        items: @escaping (Section) -> [Item],
+        itemTitle: @escaping (Item) -> String,
+        itemRepresentedObject: @escaping (Item) -> AnyHashable
+    ) -> Binder<[Section]> {
+        Binder(base) { popUpButton, sections in
+            let previousRepresentedObject = popUpButton.selectedItem?.representedObject as? AnyHashable
+
+            popUpButton.menu?.removeAllItems()
+
+            for section in sections {
+                let header = NSMenuItem.sectionHeader(title: sectionTitle(section))
+                popUpButton.menu?.addItem(header)
+
+                for item in items(section) {
+                    let menuItem = NSMenuItem(title: itemTitle(item), action: nil, keyEquivalent: "")
+                    menuItem.representedObject = itemRepresentedObject(item)
+                    popUpButton.menu?.addItem(menuItem)
+                }
+            }
+
+            // Restore selection by representedObject
+            if let previousRepresentedObject {
+                let index = popUpButton.menu?.items.firstIndex {
+                    ($0.representedObject as? AnyHashable) == previousRepresentedObject
+                }
+                if let index {
+                    popUpButton.selectItem(at: index)
+                }
+            } else {
+                // Select first selectable item
+                let index = popUpButton.menu?.items.firstIndex { $0.isEnabled && !$0.isSeparatorItem }
+                if let index {
+                    popUpButton.selectItem(at: index)
+                }
+            }
+        }
+    }
+}
+
+extension Reactive where Base: NSPopUpButton {
+    /// Emits the representedObject of the selected item when selection changes.
+    public func selectedItemRepresentedObject<T: Hashable>(_ type: T.Type = T.self) -> ControlEvent<T?> {
+        _controlEventForBaseAction { $0.selectedItem?.representedObject as? T }
+    }
+}
