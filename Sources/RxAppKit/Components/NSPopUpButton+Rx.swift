@@ -90,7 +90,8 @@ extension Reactive where Base: NSPopUpButton {
         items: @escaping (Section) -> [Item],
         itemTitle: @escaping (Item) -> String,
         itemImage: ((Item) -> NSImage?)? = nil,
-        itemRepresentedObject: @escaping (Item) -> AnyHashable
+        itemRepresentedObject: @escaping (Item) -> AnyHashable,
+        configureMenuItem: ((NSMenuItem, Item) -> Void)? = nil
     ) -> Binder<[Section]> {
         Binder(base) { popUpButton, sections in
             let previousRepresentedObject = popUpButton.selectedItem?.representedObject as? AnyHashable
@@ -105,6 +106,7 @@ extension Reactive where Base: NSPopUpButton {
                     let menuItem = NSMenuItem(title: itemTitle(item), action: nil, keyEquivalent: "")
                     menuItem.image = itemImage?(item)
                     menuItem.representedObject = itemRepresentedObject(item)
+                    configureMenuItem?(menuItem, item)
                     popUpButton.menu?.addItem(menuItem)
                 }
             }
