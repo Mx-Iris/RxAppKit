@@ -36,7 +36,10 @@ extension Reactive where Base: NSMenuToolbarItem {
 
             let proxy = toolbarItem.rx.menuProxy
 
-            for section in sections {
+            for (sectionIndex, section) in sections.enumerated() {
+                if sectionIndex > 0 {
+                    menu.addItem(.separator())
+                }
                 let header = NSMenuItem.sectionHeader(title: sectionTitle(section))
                 menu.addItem(header)
 
