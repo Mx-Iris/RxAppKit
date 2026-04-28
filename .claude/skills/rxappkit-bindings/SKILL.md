@@ -1,0 +1,1 @@
+../../../plugins/rxappkit-bindings/skills/rxappkit-bindings/SKILL.md

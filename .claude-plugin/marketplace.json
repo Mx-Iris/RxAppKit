@@ -1,0 +1,18 @@
+{
+  "name": "rxappkit",
+  "owner": {
+    "name": "Mx-Iris",
+    "url": "https://github.com/Mx-Iris"
+  },
+  "metadata": {
+    "description": "Claude Code skills for RxAppKit — RxSwift bindings for AppKit.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "rxappkit-bindings",
+      "source": "./plugins/rxappkit-bindings",
+      "description": "Teaches Claude the canonical RxAppKit binding patterns: prefer rx.click / rx.<property> / rx.nodes / rx.items over PublishRelay+@objc plumbing and hand-rolled NSTableViewDataSource / NSOutlineViewDataSource / NSCollectionViewDataSource / NSBrowserDelegate. Surfaces the @dynamicMemberLookup mechanism on HasTargeAction conformers."
+    }
+  ]
+}
