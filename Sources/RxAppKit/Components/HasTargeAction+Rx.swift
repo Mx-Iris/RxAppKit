@@ -4,7 +4,9 @@ import AppKit
 import RxSwift
 
 private enum RxHasTargetActionKey {
+    @inline(never)
     static var controlEvent: Void = ()
+    @inline(never)
     static var controlProperty: Void = ()
 }
 

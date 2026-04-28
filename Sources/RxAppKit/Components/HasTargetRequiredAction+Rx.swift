@@ -5,7 +5,9 @@ import RxSwift
 import RxCocoa
 
 private enum RxHasTargetRequiredActionKey {
+    @inline(never)
     static var controlEvent: Void = ()
+    @inline(never)
     static var controlProperty: Void = ()
 }
 

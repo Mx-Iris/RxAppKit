@@ -8,6 +8,7 @@ extension Reactive where Base: HasDoubleAction {
 }
 
 private enum RxHasDoubleActionKey {
+    @inline(never)
     static var controlEvent: Void = ()
 }
 
