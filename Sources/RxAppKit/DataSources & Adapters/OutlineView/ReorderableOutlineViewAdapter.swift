@@ -2,6 +2,46 @@ import AppKit
 import RxSwift
 import RxCocoa
 
+// MARK: - Debug logging
+//
+// Verbose drag-and-drop diagnostics. Disabled by default; flip
+// `RxAppKitDebugLogging.isEnabled = true` to print to the console.
+// When disabled the message expressions are never evaluated (`@autoclosure`),
+// so leaving the call sites in place is effectively free.
+
+public enum RxAppKitDebugLogging {
+    /// Set to `true` to enable verbose RxAppKit drag-and-drop logging.
+    public static var isEnabled: Bool = false
+}
+
+private let _rxAppKitDebugFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "HH:mm:ss.SSS"
+    return formatter
+}()
+
+@inline(never) internal func _RxAppKitDebugLog(_ message: @autoclosure () -> String) {
+    guard RxAppKitDebugLogging.isEnabled else { return }
+    let timestamp = _rxAppKitDebugFormatter.string(from: Date())
+    let threadTag = Thread.isMainThread ? "main" : "bg"
+    print("[RxAppKitDebug \(timestamp) \(threadTag)] \(message())")
+}
+
+internal func _rxAppKitDebugDescribe(_ value: Any?) -> String {
+    guard let value else { return "nil" }
+    let object = value as AnyObject
+    let pointer = String(format: "%p", unsafeBitCast(object, to: Int.self))
+    return "<\(type(of: value)):\(pointer)>"
+}
+
+internal func _rxAppKitDebugExpansionState(_ outlineView: NSOutlineView, item: Any?) -> String {
+    if item == nil { return "root(N/A)" }
+    let expanded = outlineView.isItemExpanded(item)
+    let row = outlineView.row(forItem: item)
+    let childIdx = outlineView.childIndex(forItem: item)
+    return "expanded=\(expanded), row=\(row), childIdx=\(childIdx)"
+}
+
 open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineViewAdapter<OutlineNode>, RxNSOutlineViewReorderableDataSourceType {
 
     // MARK: - Reordering
@@ -26,6 +66,13 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
 
     open var isRootLevelReorderingOnly: Bool = false
 
+    /// When `true`, after a drag completes the destination parent is automatically
+    /// expanded if it was collapsed. Lets users see the item they just dropped
+    /// onto a collapsed group without having to manually disclose it. Defaults
+    /// to `true`. Set to `false` to keep the destination's expansion state
+    /// untouched.
+    open var expandsDropDestination: Bool = true
+
     public let outlineItemMoved = PublishSubject<OutlineMove>()
     public let modelMoved = PublishSubject<[Any]>()
 
@@ -38,6 +85,23 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     private var draggingChildIndexes: IndexSet = []
     private var draggingParentItem: OutlineNode?
     private var isReorderingRegistered = false
+
+    /// Records the AppKit-level move that just happened in `acceptDrop:`, so that
+    /// downstream consumers (like the Rx binder) can drive `NSOutlineView.moveItem(at:inParent:to:inParent:)`
+    /// directly instead of going through a flat-array diff — diffs cannot represent
+    /// cross-parent moves correctly and leave the view's row mapping stale.
+    internal struct PendingDragOperation {
+        let sourceParent: OutlineNode?
+        /// Ascending order.
+        let sortedSourceChildIndexes: [Int]
+        let destinationParent: OutlineNode?
+        /// Same-parent: final-state index of the FIRST dragged item (after source-removal adjustment).
+        /// Cross-parent: destination index where dragged items are inserted.
+        let baseInsertionIndex: Int
+        let isSameParent: Bool
+    }
+
+    internal var pendingDragOperation: PendingDragOperation?
 
     /// Register the outline view for internal drag-and-drop reordering.
     /// Called automatically by `rx.reorderableNodes(adapter:)` when using Rx bindings.
@@ -223,9 +287,23 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     }
 
     @objc open func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex: Int) -> Bool {
-        guard !draggingChildIndexes.isEmpty else { return false }
-        guard info.draggingSource as? NSOutlineView === outlineView else { return false }
-        if rootNode != nil, item == nil { return false }
+        let destExpansion: String = {
+            if let dest = item { return _rxAppKitDebugExpansionState(outlineView, item: dest) }
+            return "root(no item)"
+        }()
+        _RxAppKitDebugLog("acceptDrop ENTER: childIndex=\(childIndex), item=\(_rxAppKitDebugDescribe(item)) [\(destExpansion)], draggingChildIndexes=\(Array(draggingChildIndexes)), draggingParent=\(_rxAppKitDebugDescribe(draggingParentItem)), nodes.count=\(nodes.count), outlineView.rows=\(outlineView.numberOfRows), rootOverride=\(rootNodesOverride.map { "set(\($0.count))" } ?? "nil"), childOverrides.count=\(childOverrides.count)")
+        guard !draggingChildIndexes.isEmpty else {
+            _RxAppKitDebugLog("acceptDrop ABORT: empty draggingChildIndexes")
+            return false
+        }
+        guard info.draggingSource as? NSOutlineView === outlineView else {
+            _RxAppKitDebugLog("acceptDrop ABORT: foreign draggingSource")
+            return false
+        }
+        if rootNode != nil, item == nil {
+            _RxAppKitDebugLog("acceptDrop ABORT: rootNode mode but item=nil")
+            return false
+        }
 
         let sourceParent = draggingParentItem
         let destinationParent = item as? OutlineNode
@@ -233,6 +311,7 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
 
         let sourceParentPath = indexPath(for: sourceParent, in: outlineView)
         let destinationParentPath = indexPath(for: destinationParent, in: outlineView)
+        _RxAppKitDebugLog("acceptDrop paths: sourceParentPath=\(sourceParentPath as Any), destinationParentPath=\(destinationParentPath as Any), isDropOnItem=\(isDropOnItem)")
 
         let isRootOnlyMove = destinationParent == nil && sourceParent == nil
         if !isRootOnlyMove {
@@ -286,10 +365,25 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
             setChildren(destinationChildren, for: destinationParent)
         }
 
+        // Record the AppKit-level move so downstream code (the Rx binder) can drive
+        // `outlineView.moveItem(at:inParent:to:inParent:)` precisely instead of
+        // computing a flat-array diff that can't represent cross-parent moves.
+        let pending = PendingDragOperation(
+            sourceParent: sourceParent,
+            sortedSourceChildIndexes: sortedAscending,
+            destinationParent: destinationParent,
+            baseInsertionIndex: insertionIndex,
+            isSameParent: isSameNode(sourceParent, destinationParent)
+        )
+        pendingDragOperation = pending
+        _RxAppKitDebugLog("acceptDrop after-mutate: pending=(srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), srcIdxs=\(pending.sortedSourceChildIndexes), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), sameParent=\(pending.isSameParent)), rootOverride=\(rootNodesOverride.map { "[\($0.count)]" } ?? "nil"), childOverrides.count=\(childOverrides.count)")
+
         if isRootOnlyMove {
             let newRootNodes = currentChildren(of: nil)
             reorderingHandlers.didReorder?(newRootNodes)
+            _RxAppKitDebugLog("acceptDrop EMIT modelMoved (rootOnly)")
             modelMoved.onNext(newRootNodes.map { $0 as Any })
+            _RxAppKitDebugLog("acceptDrop EMIT modelMoved DONE")
         }
 
         let move = OutlineMove(
@@ -299,15 +393,22 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
             destinationIndex: dropTargetIndex,
             isDropOnItem: isDropOnItem
         )
+        _RxAppKitDebugLog("acceptDrop EMIT outlineItemMoved: move=\(move)")
         outlineItemMoved.onNext(move)
+        _RxAppKitDebugLog("acceptDrop EMIT outlineItemMoved DONE")
 
         draggingChildIndexes = []
         draggingParentItem = nil
+        _RxAppKitDebugLog("acceptDrop EXIT (return true): nodes.count=\(nodes.count), outlineView.rows=\(outlineView.numberOfRows), pendingDragOperation=\(pendingDragOperation == nil ? "consumed" : "still-pending")")
         return true
     }
 
     @objc(outlineView:draggingSession:willBeginAtPoint:forItems:)
     open func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, willBeginAt screenPoint: NSPoint, forItems draggedItems: [Any]) {
+        let perItemDescribe = draggedItems.map { item -> String in
+            "\(_rxAppKitDebugDescribe(item))[\(_rxAppKitDebugExpansionState(outlineView, item: item))]"
+        }.joined(separator: ",")
+        _RxAppKitDebugLog("willBeginAt: draggedItems=[\(perItemDescribe)], outlineView.rows=\(outlineView.numberOfRows), nodes.count=\(nodes.count), rootOverride=\(rootNodesOverride.map { "[\($0.count)]" } ?? "nil")")
         let draggedNodes = draggedItems.compactMap { $0 as? OutlineNode }
 
         var allowedNodes = draggedNodes
@@ -351,10 +452,12 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
         draggingParentItem = parent
         draggingChildIndexes = IndexSet(indices)
         session.animatesToStartingPositionsOnCancelOrFail = false
+        _RxAppKitDebugLog("willBeginAt FINISHED: draggingChildIndexes=\(Array(draggingChildIndexes)), draggingParent=\(_rxAppKitDebugDescribe(parent))")
     }
 
     @objc(outlineView:draggingSession:endedAtPoint:operation:)
     open func outlineView(_ outlineView: NSOutlineView, draggingSession session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        _RxAppKitDebugLog("endedAt: operation=\(operation.rawValue), nodes.count=\(nodes.count), outlineView.rows=\(outlineView.numberOfRows), pendingDragOperation=\(pendingDragOperation == nil ? "nil" : "set")")
         draggingChildIndexes = []
         draggingParentItem = nil
     }
