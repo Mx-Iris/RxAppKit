@@ -79,14 +79,6 @@ extension OutlineMove {
             return nil
         }
 
-        func set(_ newChildren: [Node], at path: IndexPath?) {
-            if let path, !path.isEmpty, let parent = node(at: path) {
-                setChildren(parent, newChildren)
-            } else {
-                roots = newChildren
-            }
-        }
-
         guard let sourceChildren = children(at: sourceParentPath) else { return }
         guard let destinationChildren = children(at: destinationParentPath) else { return }
 
@@ -102,6 +94,37 @@ extension OutlineMove {
             }
         }
 
+        // Resolve source/destination parent references against the original tree
+        // BEFORE any mutation. The IndexPaths were computed against the unmutated
+        // tree, so once we mutate one side, looking the other up by path can land
+        // on the wrong node (or fall out of bounds) — e.g., a root-level source
+        // removal at index 0 makes destinationParentPath=[3] either off-by-one
+        // or out of range.
+        let sourceParentRef: Node? = {
+            guard let path = sourceParentPath, !path.isEmpty else { return nil }
+            return node(at: path)
+        }()
+        let destinationParentRef: Node? = {
+            guard let path = destinationParentPath, !path.isEmpty else { return nil }
+            return node(at: path)
+        }()
+
+        func writeSource(_ newChildren: [Node]) {
+            if let parent = sourceParentRef {
+                setChildren(parent, newChildren)
+            } else {
+                roots = newChildren
+            }
+        }
+
+        func writeDestination(_ newChildren: [Node]) {
+            if let parent = destinationParentRef {
+                setChildren(parent, newChildren)
+            } else {
+                roots = newChildren
+            }
+        }
+
         let moved = sortedAscending.map { sourceChildren[$0] }
         var updatedSource = sourceChildren
         for index in sourceIndexes.sorted(by: >) {
@@ -113,19 +136,20 @@ extension OutlineMove {
             for (offset, n) in moved.enumerated() {
                 updatedSource.insert(n, at: clamped + offset)
             }
-            set(updatedSource, at: sourceParentPath)
+            writeSource(updatedSource)
             return
         }
 
-        // Cross-parent: apply source removal first, then destination insertion
-        set(updatedSource, at: sourceParentPath)
+        // Cross-parent: apply source removal first, then destination insertion.
+        // The pre-resolved refs above keep destination correct after this mutation.
+        writeSource(updatedSource)
 
         var updatedDestination = destinationChildren
         let clamped = max(0, min(targetIndex, updatedDestination.count))
         for (offset, n) in moved.enumerated() {
             updatedDestination.insert(n, at: clamped + offset)
         }
-        set(updatedDestination, at: destinationParentPath)
+        writeDestination(updatedDestination)
     }
 
     /// Applies this move to the root-level nodes array only.
