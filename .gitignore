@@ -9,3 +9,4 @@ DerivedData/
 .netrc
 .swiftpm
 .claude/settings.local.json
+.omc
