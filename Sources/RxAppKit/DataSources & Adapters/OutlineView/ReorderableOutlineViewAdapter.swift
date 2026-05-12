@@ -38,7 +38,7 @@ internal func _rxAppKitDebugExpansionState(_ outlineView: NSOutlineView, item: A
     if item == nil { return "root(N/A)" }
     let expanded = outlineView.isItemExpanded(item)
     let row = outlineView.row(forItem: item)
-    let childIdx = outlineView.childIndex(forItem: item)
+    let childIdx = outlineView.childIndex(forItem: item as Any)
     return "expanded=\(expanded), row=\(row), childIdx=\(childIdx)"
 }
 
@@ -460,5 +460,89 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
         _RxAppKitDebugLog("endedAt: operation=\(operation.rawValue), nodes.count=\(nodes.count), outlineView.rows=\(outlineView.numberOfRows), pendingDragOperation=\(pendingDragOperation == nil ? "nil" : "set")")
         draggingChildIndexes = []
         draggingParentItem = nil
+    }
+}
+
+extension ReorderableOutlineViewAdapter {
+    /// Translates a recorded `PendingDragOperation` into one or more
+    /// `NSOutlineView.moveItem(at:inParent:to:inParent:)` calls inside a
+    /// single `beginUpdates`/`endUpdates` batch. Assumes `nodes` and any
+    /// hierarchical model state already reflect the post-move state.
+    internal func applyDragMove(_ pending: PendingDragOperation, to outlineView: NSOutlineView) {
+        let sortedAscending = pending.sortedSourceChildIndexes
+        guard !sortedAscending.isEmpty else {
+            _RxAppKitDebugLog("applyDragMove ABORT: empty sortedSourceChildIndexes")
+            return
+        }
+        let count = sortedAscending.count
+
+        _RxAppKitDebugLog("applyDragMove BEGIN: count=\(count), sameParent=\(pending.isSameParent), srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), outlineView.rows(pre)=\(outlineView.numberOfRows)")
+        if let dst = pending.destinationParent {
+            _RxAppKitDebugLog("applyDragMove dst PRE-batch: \(_rxAppKitDebugExpansionState(outlineView, item: dst))")
+        }
+
+        let needsExpandDestination = expandsDropDestination
+            && pending.destinationParent != nil
+            && !outlineView.isItemExpanded(pending.destinationParent)
+
+        outlineView.beginUpdates()
+        if pending.isSameParent {
+            // Process largest-source-index first so earlier (larger) indices
+            // aren't shifted by previous moves. Each item's final index in
+            // the parent's children is `baseInsertionIndex + offsetInAsc`,
+            // where `offsetInAsc` is the item's position in the ascending
+            // source order; for the i-th item iterated descending,
+            // `offsetInAsc = count - 1 - i`. NSOutlineView's same-parent
+            // `moveItem(at:to:)` interprets `to` as the final index.
+            let sortedDescending = sortedAscending.reversed()
+            for (i, sourceIndex) in sortedDescending.enumerated() {
+                let offsetInAscending = count - 1 - i
+                let finalDestinationIndex = pending.baseInsertionIndex + offsetInAscending
+                _RxAppKitDebugLog("applyDragMove moveItem (sameParent #\(i)): at=\(sourceIndex) → to=\(finalDestinationIndex) inParent=\(_rxAppKitDebugDescribe(pending.destinationParent))")
+                outlineView.moveItem(at: sourceIndex, inParent: pending.sourceParent,
+                                     to: finalDestinationIndex, inParent: pending.destinationParent)
+            }
+        } else {
+            // Cross-parent: process ascending. After i moves the source has
+            // lost i items (live source index = original - i) and the
+            // destination has gained i items (live destination index = base + i).
+            for (i, sourceIndex) in sortedAscending.enumerated() {
+                let liveSourceIndex = sourceIndex - i
+                let liveDestinationIndex = pending.baseInsertionIndex + i
+                _RxAppKitDebugLog("applyDragMove moveItem (crossParent #\(i)): at=\(liveSourceIndex) inParent=\(_rxAppKitDebugDescribe(pending.sourceParent)) → to=\(liveDestinationIndex) inParent=\(_rxAppKitDebugDescribe(pending.destinationParent))")
+                outlineView.moveItem(at: liveSourceIndex, inParent: pending.sourceParent,
+                                     to: liveDestinationIndex, inParent: pending.destinationParent)
+            }
+        }
+        outlineView.endUpdates()
+
+        if let dst = pending.destinationParent {
+            _RxAppKitDebugLog("applyDragMove dst POST-batch: \(_rxAppKitDebugExpansionState(outlineView, item: dst))")
+        }
+        _RxAppKitDebugLog("applyDragMove END: outlineView.rows(post)=\(outlineView.numberOfRows)")
+
+        // Reveal the dropped item by expanding the destination if it was
+        // collapsed. NSOutlineView does NOT do this automatically — what looks
+        // like an automatic expansion in some cases is just spring-load
+        // residue from the drag, which is timing-dependent. Without this,
+        // dropping onto a collapsed group silently swallows the item.
+        //
+        // Two subtleties:
+        //   1. `animator().expandItem(_:)` doesn't actually expand — `animator()`
+        //      is for animatable property setters, not for arbitrary methods.
+        //   2. If `dst` was a leaf before the move, `NSOutlineView` has cached
+        //      `isItemExpandable=false` and refuses to expand it. We need to
+        //      `reloadItem` first (without reloadChildren — we don't want to
+        //      drop children of a still-collapsed item) so the view re-queries
+        //      `isItemExpandable` against the new data source.
+        if needsExpandDestination, let dst = pending.destinationParent {
+            let expandableBefore = outlineView.isExpandable(dst)
+            _RxAppKitDebugLog("applyDragMove EXPAND destination: \(_rxAppKitDebugDescribe(dst)), isExpandable(pre-reload)=\(expandableBefore)")
+            outlineView.reloadItem(dst)
+            let expandableAfterReload = outlineView.isExpandable(dst)
+            _RxAppKitDebugLog("applyDragMove EXPAND: isExpandable(post-reload)=\(expandableAfterReload)")
+            outlineView.expandItem(dst)
+            _RxAppKitDebugLog("applyDragMove EXPAND DONE: isItemExpanded=\(outlineView.isItemExpanded(dst)), outlineView.rows=\(outlineView.numberOfRows)")
+        }
     }
 }

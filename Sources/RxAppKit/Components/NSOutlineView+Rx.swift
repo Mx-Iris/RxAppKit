@@ -7,7 +7,7 @@ extension Reactive where Base: NSOutlineView {
     public typealias OutlineCellViewProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ node: OutlineNode) -> NSView?
 
     public typealias OutlineRowViewProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ node: OutlineNode) -> NSTableRowView?
-    
+
     private var _outlineViewDelegate: RxNSOutlineViewDelegateProxy {
         .proxy(for: base)
     }
@@ -24,40 +24,56 @@ extension Reactive where Base: NSOutlineView {
         RxNSOutlineViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
-        -> (@escaping OutlineCellViewProvider<OutlineNode>)
-        -> Disposable
+    // MARK: - rootNode
+
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        source: Source,
+        options: RxNSOutlineViewAdapterOptions = []
+    ) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == OutlineNode {
         return { viewForItem in
-            self.rootNode(source: source)(viewForItem, nil)
+            self.rootNode(source: source, options: options)(viewForItem, nil)
         }
     }
 
-    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
-        -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?)
-        -> Disposable
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        source: Source,
+        options: RxNSOutlineViewAdapterOptions = []
+    ) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == OutlineNode {
         return { cellViewProvider, rowViewProvider in
-            let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
+            let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(
+                options: options,
+                cellViewProvider: cellViewProvider,
+                rowViewProvider: rowViewProvider
+            )
             return self.nodes(adapter: adapter)(source)
         }
     }
 
-    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
-        -> (@escaping OutlineCellViewProvider<OutlineNode>)
-        -> Disposable
+    // MARK: - nodes
+
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        source: Source,
+        options: RxNSOutlineViewAdapterOptions = []
+    ) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == [OutlineNode] {
         return { viewForItem in
-            self.nodes(source: source)(viewForItem, nil)
+            self.nodes(source: source, options: options)(viewForItem, nil)
         }
     }
 
-    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
-        -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?)
-        -> Disposable
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        source: Source,
+        options: RxNSOutlineViewAdapterOptions = []
+    ) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == [OutlineNode] {
         return { cellViewProvider, rowViewProvider in
-            let adapter = RxNSOutlineViewAdapter<OutlineNode>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
+            let adapter = RxNSOutlineViewAdapter<OutlineNode>(
+                options: options,
+                cellViewProvider: cellViewProvider,
+                rowViewProvider: rowViewProvider
+            )
             return self.nodes(adapter: adapter)(source)
         }
     }
@@ -75,7 +91,12 @@ extension Reactive where Base: NSOutlineView {
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering the outline view for drag-and-drop reordering.
+    // MARK: - reorderableNodes (convenience)
+
+    /// Convenience binder equivalent to
+    /// `nodes(source:options: [.reorderable, .diffable])`. Use
+    /// `nodes(source:options:)` directly to pick a different combination
+    /// (e.g. reorder-only without DifferenceKit animations).
     public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellViewProvider<OutlineNode>)
         -> Disposable
@@ -85,18 +106,24 @@ extension Reactive where Base: NSOutlineView {
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering the outline view for drag-and-drop reordering.
+    /// Convenience binder equivalent to
+    /// `nodes(source:options: [.reorderable, .diffable])`.
     public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?)
         -> Disposable
         where Source.Element == [OutlineNode] {
         return { cellViewProvider, rowViewProvider in
-            let adapter = RxNSReorderableOutlineViewAdapter<OutlineNode>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
+            let adapter = RxNSOutlineViewAdapter<OutlineNode>(
+                options: [.reorderable, .diffable],
+                cellViewProvider: cellViewProvider,
+                rowViewProvider: rowViewProvider
+            )
             return self.reorderableNodes(adapter: adapter)(source)
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering the outline view for drag-and-drop reordering.
+    /// Binds an observable source to a reorderable adapter, automatically registering
+    /// the outline view for drag-and-drop reordering.
     public func reorderableNodes<Source: ObservableType, Adapter: RxNSOutlineViewReorderableDataSourceType & RxNSOutlineViewDataSourceType & NSOutlineViewDataSource & NSOutlineViewDelegate>(adapter: Adapter)
         -> (_ source: Source)
         -> Disposable where Source.Element == Adapter.Element {
@@ -110,6 +137,8 @@ extension Reactive where Base: NSOutlineView {
             return Disposables.create([dataSourceSubscription, delegateSubscription])
         }
     }
+
+    // MARK: - Reorder events
 
     /// Emits move info when nodes have been reordered via drag-and-drop.
     /// This supports moving nodes across any level in the outline hierarchy.
@@ -150,6 +179,8 @@ extension Reactive where Base: NSOutlineView {
         }
         return ControlEvent(events: source)
     }
+
+    // MARK: - Model events
 
     public func modelDoubleClicked<Item>() -> ControlEvent<Item> {
         return _modelForControlEvent(itemDoubleClicked())

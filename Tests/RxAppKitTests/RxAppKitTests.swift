@@ -58,8 +58,9 @@ final class RxNSOutlineViewAdapterTests {
         self.window = window
     }
 
-    private func makeArrayAdapter() -> RxNSOutlineViewAdapter<TestNode> {
+    private func makeArrayAdapter(options: RxNSOutlineViewAdapterOptions = .diffable) -> RxNSOutlineViewAdapter<TestNode> {
         let adapter = RxNSOutlineViewAdapter<TestNode>(
+            options: options,
             cellViewProvider: { _, _, _ in NSTableCellView() },
             rowViewProvider: nil
         )
@@ -68,8 +69,9 @@ final class RxNSOutlineViewAdapterTests {
         return adapter
     }
 
-    private func makeRootNodeAdapter() -> RxNSOutlineViewRootNodeAdapter<TestNode> {
+    private func makeRootNodeAdapter(options: RxNSOutlineViewAdapterOptions = .diffable) -> RxNSOutlineViewRootNodeAdapter<TestNode> {
         let adapter = RxNSOutlineViewRootNodeAdapter<TestNode>(
+            options: options,
             cellViewProvider: { _, _, _ in NSTableCellView() },
             rowViewProvider: nil
         )
