@@ -3,26 +3,20 @@ import RxSwift
 import RxCocoa
 import DifferenceKit
 
-/// Rx data source adapter for `NSOutlineView` that maps an observable
-/// sequence of root-level nodes (`[OutlineNode]`) onto the outline view.
+/// Shared implementation for the Rx outline-view adapters.
 ///
-/// Behavior is controlled by `options`:
+/// Holds `options`, the `animatedReloadThreshold`, the drag-registration
+/// short-circuit, and the staged update flow (drag path / diff path /
+/// reload path). The two concrete subclasses below differ only in their
+/// `Element` associated type and how they project the latest event into
+/// the array form `performUpdate` expects.
 ///
-/// - `[]` — every event triggers `reloadData()` (default).
-/// - `[.diffable]` — animated incremental updates via DifferenceKit's
-///   `StagedChangeset`, with `animatedReloadThreshold` as a fall-back guard.
-/// - `[.reorderable]` — drag-and-drop reordering; non-drag updates still
-///   reload.
-/// - `[.diffable, .reorderable]` — drag-and-drop reordering and animated
-///   incremental updates.
-///
-/// Inherits from `ReorderableOutlineViewAdapter` so a single class can cover
-/// all four combinations; without `.reorderable` the adapter short-circuits
-/// drag registration and disables `isReorderingEnabled`.
-open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Differentiable>:
-    ReorderableOutlineViewAdapter<OutlineNode>,
-    RxNSOutlineViewDataSourceType {
-    public typealias Element = [OutlineNode]
+/// Not intended for direct binding. Use `RxNSOutlineViewAdapter` for
+/// `[OutlineNode]` sources or `RxNSOutlineViewRootNodeAdapter` for a
+/// single root `OutlineNode`. Subclassing is allowed when you need a
+/// different `Element` shape but the same staged update pipeline.
+open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & Differentiable>:
+    ReorderableOutlineViewAdapter<OutlineNode> {
 
     public let options: RxNSOutlineViewAdapterOptions
 
@@ -47,63 +41,114 @@ open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Diff
         super.setupReordering(for: outlineView)
     }
 
+    /// Shared update path used by every concrete Rx outline adapter.
+    /// `oldArray` / `newArray` are the array-form view of the model so the
+    /// diff engine can be uniform; `commit` is the subclass's sink that
+    /// writes the new data back to wherever the subclass stores it
+    /// (`nodes` for the array binder, `rootNode` for the single-root binder).
+    internal func performUpdate(
+        outlineView: NSOutlineView,
+        oldArray: [OutlineNode],
+        newArray: [OutlineNode],
+        commit: @escaping ([OutlineNode]) -> Void
+    ) {
+        _RxAppKitDebugLog("performUpdate ENTER: options=\(options.rawValue), oldArray.count=\(oldArray.count), newArray.count=\(newArray.count), pendingDragOperation=\(pendingDragOperation == nil ? "nil" : "set"), outlineView.rows=\(outlineView.numberOfRows)")
+        if options.contains(.reorderable) {
+            setupReordering(for: outlineView)
+        }
+
+        let applyUpdate: () -> Void = {
+            if self.options.contains(.reorderable), let pending = self.pendingDragOperation {
+                _RxAppKitDebugLog("applyUpdate (drag path) BEGIN: pending=(srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), srcIdxs=\(pending.sortedSourceChildIndexes), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), sameParent=\(pending.isSameParent))")
+                self.pendingDragOperation = nil
+                self.resetReorderingState()
+                commit(newArray)
+                self.applyDragMove(pending, to: outlineView)
+                _RxAppKitDebugLog("applyUpdate (drag path) END: outlineView.rows=\(outlineView.numberOfRows)")
+                return
+            }
+
+            guard oldArray != newArray else {
+                _RxAppKitDebugLog("applyUpdate SKIP: oldArray==newArray")
+                return
+            }
+
+            if self.options.contains(.diffable) {
+                let changeset = StagedChangeset(source: oldArray, target: newArray)
+                _RxAppKitDebugLog("applyUpdate (diff path) BEGIN: stages=\(changeset.count)")
+                if changeset.isEmpty {
+                    commit(newArray)
+                    return
+                }
+                outlineView.reload(using: changeset, with: [], inParent: nil) { changeset in
+                    !changeset.isOutlineViewSafe
+                        || changeset.totalElementChangeCount > self.animatedReloadThreshold
+                } setData: { staged in
+                    commit(staged)
+                }
+                _RxAppKitDebugLog("applyUpdate (diff path) END: outlineView.rows=\(outlineView.numberOfRows)")
+            } else {
+                _RxAppKitDebugLog("applyUpdate (reload path): reloadData()")
+                commit(newArray)
+                outlineView.reloadData()
+            }
+        }
+
+        // Drag updates flow synchronously through `acceptDrop:` -> Rx, but
+        // `NSOutlineView` is still inside its drag-and-drop bookkeeping when
+        // the event lands. Deferring lets AppKit finish before we touch rows;
+        // otherwise its row-to-item mapping ends up out of sync and the next
+        // drag misaligns.
+        if options.contains(.reorderable), pendingDragOperation != nil {
+            _RxAppKitDebugLog("performUpdate: pending != nil → DISPATCH ASYNC")
+            DispatchQueue.main.async(execute: applyUpdate)
+        } else {
+            _RxAppKitDebugLog("performUpdate: pending == nil → SYNC")
+            applyUpdate()
+        }
+    }
+}
+
+/// Rx data source adapter for `NSOutlineView` that maps an observable
+/// sequence of root-level nodes (`[OutlineNode]`) onto the outline view.
+/// See `RxNSOutlineViewAdapterOptions` for the supported behavior
+/// combinations.
+open class RxNSOutlineViewAdapter<OutlineNode: OutlineNodeType & Hashable & Differentiable>:
+    RxNSOutlineViewAdapterBase<OutlineNode>,
+    RxNSOutlineViewDataSourceType {
+    public typealias Element = [OutlineNode]
+
     open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
         Binder<Element>(self) { (dataSource: RxNSOutlineViewAdapter<OutlineNode>, newNodes) in
-            _RxAppKitDebugLog("observedEvent ENTER: options=\(dataSource.options.rawValue), nodes.count=\(dataSource.nodes.count), newNodes.count=\(newNodes.count), pendingDragOperation=\(dataSource.pendingDragOperation == nil ? "nil" : "set"), outlineView.rows=\(outlineView.numberOfRows)")
-            if dataSource.options.contains(.reorderable) {
-                dataSource.setupReordering(for: outlineView)
-            }
+            dataSource.performUpdate(
+                outlineView: outlineView,
+                oldArray: dataSource.nodes,
+                newArray: newNodes,
+                commit: { dataSource.nodes = $0 }
+            )
+        }.on(observedEvent)
+    }
+}
 
-            let applyUpdate: () -> Void = {
-                if dataSource.options.contains(.reorderable),
-                   let pending = dataSource.pendingDragOperation {
-                    _RxAppKitDebugLog("applyUpdate (drag path) BEGIN: pending=(srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), srcIdxs=\(pending.sortedSourceChildIndexes), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), sameParent=\(pending.isSameParent))")
-                    dataSource.pendingDragOperation = nil
-                    dataSource.resetReorderingState()
-                    dataSource.nodes = newNodes
-                    dataSource.applyDragMove(pending, to: outlineView)
-                    _RxAppKitDebugLog("applyUpdate (drag path) END: outlineView.rows=\(outlineView.numberOfRows)")
-                    return
-                }
+/// Rx data source adapter for `NSOutlineView` that maps an observable
+/// sequence emitting a single root `OutlineNode` onto the outline view.
+/// Use this when the outline shows one explicit root whose descendants
+/// are the actual content. See `RxNSOutlineViewAdapterOptions` for the
+/// supported behavior combinations.
+open class RxNSOutlineViewRootNodeAdapter<OutlineNode: OutlineNodeType & Hashable & Differentiable>:
+    RxNSOutlineViewAdapterBase<OutlineNode>,
+    RxNSOutlineViewDataSourceType {
+    public typealias Element = OutlineNode
 
-                guard dataSource.nodes != newNodes else {
-                    _RxAppKitDebugLog("applyUpdate SKIP: nodes==newNodes")
-                    return
-                }
-
-                if dataSource.options.contains(.diffable) {
-                    let changeset = StagedChangeset(source: dataSource.nodes, target: newNodes)
-                    _RxAppKitDebugLog("applyUpdate (diff path) BEGIN: stages=\(changeset.count)")
-                    if changeset.isEmpty {
-                        dataSource.nodes = newNodes
-                        return
-                    }
-                    outlineView.reload(using: changeset, with: [], inParent: nil) { changeset in
-                        !changeset.isOutlineViewSafe
-                            || changeset.totalElementChangeCount > dataSource.animatedReloadThreshold
-                    } setData: {
-                        dataSource.nodes = $0
-                    }
-                    _RxAppKitDebugLog("applyUpdate (diff path) END: outlineView.rows=\(outlineView.numberOfRows)")
-                } else {
-                    _RxAppKitDebugLog("applyUpdate (reload path): reloadData()")
-                    dataSource.nodes = newNodes
-                    outlineView.reloadData()
-                }
-            }
-
-            // Drag updates flow synchronously through `acceptDrop:` -> Rx,
-            // but `NSOutlineView` is still inside its drag-and-drop bookkeeping
-            // when the event lands. Deferring lets AppKit finish before we
-            // touch rows; otherwise its row-to-item mapping ends up out of sync
-            // and the next drag misaligns.
-            if dataSource.options.contains(.reorderable), dataSource.pendingDragOperation != nil {
-                _RxAppKitDebugLog("observedEvent: pending != nil → DISPATCH ASYNC")
-                DispatchQueue.main.async(execute: applyUpdate)
-            } else {
-                _RxAppKitDebugLog("observedEvent: pending == nil → SYNC")
-                applyUpdate()
-            }
+    open func outlineView(_ outlineView: NSOutlineView, observedEvent: Event<Element>) {
+        Binder<Element>(self) { (dataSource: RxNSOutlineViewRootNodeAdapter<OutlineNode>, newRoot) in
+            let oldArray = dataSource.rootNode.map { [$0] } ?? []
+            dataSource.performUpdate(
+                outlineView: outlineView,
+                oldArray: oldArray,
+                newArray: [newRoot],
+                commit: { dataSource.rootNode = $0.first }
+            )
         }.on(observedEvent)
     }
 }
