@@ -114,7 +114,7 @@ extension Reactive where Base: NSOutlineView {
         where Source.Element == [OutlineNode] {
         return { cellViewProvider, rowViewProvider in
             let adapter = RxNSOutlineViewAdapter<OutlineNode>(
-                options: [.reorderable, .diffable],
+                options: [.reorderable],
                 cellViewProvider: cellViewProvider,
                 rowViewProvider: rowViewProvider
             )
