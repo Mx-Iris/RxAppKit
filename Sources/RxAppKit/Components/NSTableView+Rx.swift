@@ -31,19 +31,27 @@ extension Reactive where Base: NSTableView {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellProvider: @escaping TableCellViewProvider<Element>)
-        -> Disposable where Source.Element == [Element] {
+    public func items<Element: Differentiable, Source: ObservableType>(
+        _ source: Source,
+        options: RxNSTableViewAdapterOptions = []
+    ) -> (_ cellProvider: @escaping TableCellViewProvider<Element>) -> Disposable
+    where Source.Element == [Element] {
         return { cellProvider in
-            return self.items(source)(cellProvider, nil)
+            return self.items(source, options: options)(cellProvider, nil)
         }
     }
 
-    public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
-        -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?)
-        -> Disposable where Source.Element == [Element] {
+    public func items<Element: Differentiable, Source: ObservableType>(
+        _ source: Source,
+        options: RxNSTableViewAdapterOptions = []
+    ) -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?) -> Disposable
+    where Source.Element == [Element] {
         return { cellViewProvider, rowViewProvider in
-            let adapter = RxNSTableViewArrayReloadAdapter<Element>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
+            let adapter = RxNSTableViewAdapter<Element>(
+                options: options,
+                cellViewProvider: cellViewProvider,
+                rowViewProvider: rowViewProvider
+            )
             return self.items(adapter: adapter)(source)
         }
     }
@@ -61,37 +69,31 @@ extension Reactive where Base: NSTableView {
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
+    @available(*, deprecated, message: "Use items(_:options: [.reorderable]) instead.")
     public func reorderableItems<Element: Differentiable, Source: ObservableType>(_ source: Source)
         -> (_ cellProvider: @escaping TableCellViewProvider<Element>)
         -> Disposable where Source.Element == [Element] {
         return { cellProvider in
-            self.reorderableItems(source)(cellProvider, nil)
+            self.items(source, options: [.reorderable])(cellProvider, nil)
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
+    @available(*, deprecated, message: "Use items(_:options: [.reorderable]) instead.")
     public func reorderableItems<Element: Differentiable, Source: ObservableType>(_ source: Source)
         -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?)
         -> Disposable where Source.Element == [Element] {
         return { cellViewProvider, rowViewProvider in
-            let adapter = RxNSReorderableTableViewArrayReloadAdapter<Element>(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
-            return self.reorderableItems(adapter: adapter)(source)
+            self.items(source, options: [.reorderable])(cellViewProvider, rowViewProvider)
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering the table view for drag-and-drop reordering.
+    @available(*, deprecated, message: "Use items(adapter:) with a reorderable adapter instead. The adapter is responsible for calling setupReordering(for:).")
     public func reorderableItems<Source: ObservableType, Adapter: RxNSTableViewDataSourceType & RxNSTableViewReorderableDataSourceType & NSTableViewDataSource & NSTableViewDelegate>(adapter: Adapter)
         -> (_ source: Source)
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
-            adapter.setupReordering(for: base)
-            let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak tableView = base] (_: RxNSTableViewDataSourceProxy, event) in
-                guard let tableView else { return }
-                adapter.tableView(tableView, observedEvent: event)
-            }
-            let delegateSubscription = RxNSTableViewDelegateProxy.installRequiredMethodDelegate(adapter, retainDelegate: false, onProxyForObject: base)
-            return Disposables.create([dataSourceSubscription, delegateSubscription])
+            adapter.setupReordering(for: self.base)
+            return self.items(adapter: adapter)(source)
         }
     }
 

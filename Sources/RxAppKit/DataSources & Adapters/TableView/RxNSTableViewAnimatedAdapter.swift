@@ -4,27 +4,27 @@ import AppKit
 import RxSwift
 import DifferenceKit
 
-open class RxNSTableViewArrayAnimatedAdapter<T: Differentiable>: TableViewArrayAdapter<T>, RxNSTableViewDataSourceType {
+open class RxNSTableViewAnimatedAdapter<T: Differentiable>: TableViewAdapter<T>, RxNSTableViewDataSourceType {
     public typealias Element = [T]
-    public typealias DecideViewTransition = (TableViewArrayAdapter<T>, NSTableView, Changeset<[T]>) -> ViewTransition
+    public typealias DecideViewTransition = (TableViewAdapter<T>, NSTableView, Changeset<[T]>) -> ViewTransition
     open var animationConfiguration: TableViewAnimationConfiguration
-    
+
     open var decideViewTransition: DecideViewTransition
-    
+
     public init(
         animationConfiguration: TableViewAnimationConfiguration,
         decideViewTransition: @escaping DecideViewTransition = { _, _, _ in .animated },
-        cellViewProvider: @escaping TableViewArrayAdapter<T>.CellViewProvider,
-        rowViewProvider: @escaping TableViewArrayAdapter<T>.RowViewProvider
+        cellViewProvider: @escaping TableViewAdapter<T>.CellViewProvider,
+        rowViewProvider: @escaping TableViewAdapter<T>.RowViewProvider
     ) {
         self.animationConfiguration = animationConfiguration
-        self.decideViewTransition =  decideViewTransition
+        self.decideViewTransition = decideViewTransition
         super.init(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
     }
     /// there is no longer limitation to load initial sections with reloadData
     /// but it is kept as a feature everyone got used to
     private var dataSet = false
-    
+
     open func tableView(_ tableView: NSTableView, observedEvent: Event<Element>) {
         Binder<Element>(self) { dataSource, newItems in
             if !dataSource.dataSet {

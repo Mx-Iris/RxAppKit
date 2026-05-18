@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-open class TableViewArrayAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDelegate, RowsViewDataSourceType {
+open class TableViewAdapter<T>: NSObject, NSTableViewDataSource, NSTableViewDelegate, RowsViewDataSourceType {
     public typealias CellViewProvider = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ row: Int, _ item: T) -> NSView?
     public typealias RowViewProvider = (_ tableView: NSTableView, _ row: Int, _ items: [T]) -> NSTableRowView
 

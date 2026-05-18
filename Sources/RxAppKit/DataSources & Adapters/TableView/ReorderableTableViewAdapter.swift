@@ -1,7 +1,7 @@
 import AppKit
 import RxSwift
 
-open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTableViewReorderableDataSourceType {
+open class ReorderableTableViewAdapter<T>: TableViewAdapter<T>, RxNSTableViewReorderableDataSourceType {
 
     // MARK: - Reordering
 
@@ -27,7 +27,7 @@ open class ReorderableTableViewArrayAdapter<T>: TableViewArrayAdapter<T>, RxNSTa
     public let modelMoved = PublishSubject<[Any]>()
 
     private static var reorderPasteboardType: NSPasteboard.PasteboardType {
-        NSPasteboard.PasteboardType("com.RxAppKit.ReorderableTableViewArrayAdapter.reorder")
+        NSPasteboard.PasteboardType("com.RxAppKit.ReorderableTableViewAdapter.reorder")
     }
 
     private var draggingRowIndexes: IndexSet = []
