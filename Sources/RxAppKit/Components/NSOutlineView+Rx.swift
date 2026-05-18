@@ -91,50 +91,35 @@ extension Reactive where Base: NSOutlineView {
         }
     }
 
-    // MARK: - reorderableNodes (convenience)
+    // MARK: - reorderableNodes (deprecated)
 
-    /// Convenience binder equivalent to
-    /// `nodes(source:options: [.reorderable, .diffable])`. Use
-    /// `nodes(source:options:)` directly to pick a different combination
-    /// (e.g. reorder-only without DifferenceKit animations).
+    @available(*, deprecated, message: "Use nodes(source:options: [.reorderable]) instead.")
     public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellViewProvider<OutlineNode>)
         -> Disposable
         where Source.Element == [OutlineNode] {
         return { viewForItem in
-            self.reorderableNodes(source: source)(viewForItem, nil)
+            self.nodes(source: source, options: [.reorderable])(viewForItem, nil)
         }
     }
 
-    /// Convenience binder equivalent to
-    /// `nodes(source:options: [.reorderable, .diffable])`.
+    @available(*, deprecated, message: "Use nodes(source:options: [.reorderable]) instead.")
     public func reorderableNodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
         -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?)
         -> Disposable
         where Source.Element == [OutlineNode] {
         return { cellViewProvider, rowViewProvider in
-            let adapter = RxNSOutlineViewAdapter<OutlineNode>(
-                options: [.reorderable],
-                cellViewProvider: cellViewProvider,
-                rowViewProvider: rowViewProvider
-            )
-            return self.reorderableNodes(adapter: adapter)(source)
+            self.nodes(source: source, options: [.reorderable])(cellViewProvider, rowViewProvider)
         }
     }
 
-    /// Binds an observable source to a reorderable adapter, automatically registering
-    /// the outline view for drag-and-drop reordering.
+    @available(*, deprecated, message: "Use nodes(adapter:) with a reorderable adapter instead. The adapter is responsible for calling setupReordering(for:).")
     public func reorderableNodes<Source: ObservableType, Adapter: RxNSOutlineViewReorderableDataSourceType & RxNSOutlineViewDataSourceType & NSOutlineViewDataSource & NSOutlineViewDelegate>(adapter: Adapter)
         -> (_ source: Source)
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
             adapter.setupReordering(for: self.base)
-            let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak outlineView = base] (_: RxNSOutlineViewDataSourceProxy, event) in
-                guard let outlineView = outlineView else { return }
-                adapter.outlineView(outlineView, observedEvent: event)
-            }
-            let delegateSubscription = RxNSOutlineViewDelegateProxy.proxy(for: base).setRequiredMethodDelegate(adapter)
-            return Disposables.create([dataSourceSubscription, delegateSubscription])
+            return self.nodes(adapter: adapter)(source)
         }
     }
 
