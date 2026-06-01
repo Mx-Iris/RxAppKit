@@ -31,19 +31,35 @@ extension Reactive where Base: NSTableView {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
     }
 
-    public func items<Element: Differentiable, Source: ObservableType>(
-        _ source: Source,
-        options: RxNSTableViewAdapterOptions = []
-    ) -> (_ cellProvider: @escaping TableCellViewProvider<Element>) -> Disposable
+    public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
+        -> (_ cellProvider: @escaping TableCellViewProvider<Element>) -> Disposable
     where Source.Element == [Element] {
         return { cellProvider in
-            return self.items(source, options: options)(cellProvider, nil)
+            self.items(source, options: [])(cellProvider, nil)
+        }
+    }
+
+    public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)
+        -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?) -> Disposable
+    where Source.Element == [Element] {
+        return { cellViewProvider, rowViewProvider in
+            self.items(source, options: [])(cellViewProvider, rowViewProvider)
         }
     }
 
     public func items<Element: Differentiable, Source: ObservableType>(
         _ source: Source,
-        options: RxNSTableViewAdapterOptions = []
+        options: RxNSTableViewAdapterOptions
+    ) -> (_ cellProvider: @escaping TableCellViewProvider<Element>) -> Disposable
+    where Source.Element == [Element] {
+        return { cellProvider in
+            self.items(source, options: options)(cellProvider, nil)
+        }
+    }
+
+    public func items<Element: Differentiable, Source: ObservableType>(
+        _ source: Source,
+        options: RxNSTableViewAdapterOptions
     ) -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?) -> Disposable
     where Source.Element == [Element] {
         return { cellViewProvider, rowViewProvider in
@@ -53,6 +69,29 @@ extension Reactive where Base: NSTableView {
                 rowViewProvider: rowViewProvider
             )
             return self.items(adapter: adapter)(source)
+        }
+    }
+
+    /// Curried form for `.drive(tableView.rx.items(options:)) { ... }` /
+    /// `.bind(to: tableView.rx.items(options:)) { ... }` usage. Lets the
+    /// caller pass options through a partial-reference binder.
+    public func items<Element: Differentiable, Source: ObservableType>(
+        options: RxNSTableViewAdapterOptions
+    ) -> (_ source: Source) -> (_ cellProvider: @escaping TableCellViewProvider<Element>) -> Disposable
+    where Source.Element == [Element] {
+        return { source in
+            self.items(source, options: options)
+        }
+    }
+
+    /// Curried form for `.drive(tableView.rx.items(options:)) { ... }` with
+    /// a row-view provider.
+    public func items<Element: Differentiable, Source: ObservableType>(
+        options: RxNSTableViewAdapterOptions
+    ) -> (_ source: Source) -> (_ cellViewProvider: @escaping TableCellViewProvider<Element>, _ rowViewProvider: TableRowViewProvider<Element>?) -> Disposable
+    where Source.Element == [Element] {
+        return { source in
+            self.items(source, options: options)
         }
     }
 

@@ -26,9 +26,25 @@ extension Reactive where Base: NSOutlineView {
 
     // MARK: - rootNode
 
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
+        where Source.Element == OutlineNode {
+        return { viewForItem in
+            self.rootNode(source: source, options: [])(viewForItem, nil)
+        }
+    }
+
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
+        where Source.Element == OutlineNode {
+        return { cellViewProvider, rowViewProvider in
+            self.rootNode(source: source, options: [])(cellViewProvider, rowViewProvider)
+        }
+    }
+
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions = []
+        options: RxNSOutlineViewAdapterOptions
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == OutlineNode {
         return { viewForItem in
@@ -38,7 +54,7 @@ extension Reactive where Base: NSOutlineView {
 
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions = []
+        options: RxNSOutlineViewAdapterOptions
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == OutlineNode {
         return { cellViewProvider, rowViewProvider in
@@ -51,11 +67,49 @@ extension Reactive where Base: NSOutlineView {
         }
     }
 
+    /// Curried form for `.drive(outlineView.rx.rootNode(options:)) { ... }` /
+    /// `.bind(to: outlineView.rx.rootNode(options:)) { ... }` usage.
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        options: RxNSOutlineViewAdapterOptions
+    ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
+        where Source.Element == OutlineNode {
+        return { source in
+            self.rootNode(source: source, options: options)
+        }
+    }
+
+    /// Curried form for `.drive(outlineView.rx.rootNode(options:)) { ... }` with
+    /// a row-view provider.
+    public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        options: RxNSOutlineViewAdapterOptions
+    ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
+        where Source.Element == OutlineNode {
+        return { source in
+            self.rootNode(source: source, options: options)
+        }
+    }
+
     // MARK: - nodes
+
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
+        where Source.Element == [OutlineNode] {
+        return { viewForItem in
+            self.nodes(source: source, options: [])(viewForItem, nil)
+        }
+    }
+
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
+        where Source.Element == [OutlineNode] {
+        return { cellViewProvider, rowViewProvider in
+            self.nodes(source: source, options: [])(cellViewProvider, rowViewProvider)
+        }
+    }
 
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions = []
+        options: RxNSOutlineViewAdapterOptions
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == [OutlineNode] {
         return { viewForItem in
@@ -65,7 +119,7 @@ extension Reactive where Base: NSOutlineView {
 
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions = []
+        options: RxNSOutlineViewAdapterOptions
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == [OutlineNode] {
         return { cellViewProvider, rowViewProvider in
@@ -75,6 +129,28 @@ extension Reactive where Base: NSOutlineView {
                 rowViewProvider: rowViewProvider
             )
             return self.nodes(adapter: adapter)(source)
+        }
+    }
+
+    /// Curried form for `.drive(outlineView.rx.nodes(options:)) { ... }` /
+    /// `.bind(to: outlineView.rx.nodes(options:)) { ... }` usage.
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        options: RxNSOutlineViewAdapterOptions
+    ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
+        where Source.Element == [OutlineNode] {
+        return { source in
+            self.nodes(source: source, options: options)
+        }
+    }
+
+    /// Curried form for `.drive(outlineView.rx.nodes(options:)) { ... }` with
+    /// a row-view provider.
+    public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        options: RxNSOutlineViewAdapterOptions
+    ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
+        where Source.Element == [OutlineNode] {
+        return { source in
+            self.nodes(source: source, options: options)
         }
     }
 
