@@ -165,16 +165,19 @@ extension Reactive where Base: NSTableView {
         return ControlEvent(events: source)
     }
 
-    public func itemDoubleClicked() -> ControlEvent<TableIndex> {
-        _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
-    }
-
     public func itemClicked() -> ControlEvent<TableIndex> {
         _controlEventForBaseAction { ($0.clickedRow, $0.clickedColumn) }
     }
 
+    public func itemDoubleClicked() -> ControlEvent<TableIndex> {
+        _controlEventForDoubleAction { ($0.clickedRow, $0.clickedColumn) }
+    }
+
     public func itemSelected() -> ControlEvent<TableIndex> {
-        _controlEventForBaseAction { ($0.selectedRow, $0.selectedColumn) }
+        return base.rx.controlEventForNotification(NSTableView.selectionDidChangeNotification, object: base) { notification in
+            guard let base = notification.object as? NSTableView else { return nil }
+            return (base.selectedRow, base.selectedColumn)
+        }
     }
 
     public func didAddRow() -> ControlEvent<(rowView: NSTableRowView, row: Int)> {

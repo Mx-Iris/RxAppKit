@@ -44,7 +44,7 @@ extension Reactive where Base: NSOutlineView {
 
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == OutlineNode {
         return { viewForItem in
@@ -54,14 +54,14 @@ extension Reactive where Base: NSOutlineView {
 
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == OutlineNode {
         return { cellViewProvider, rowViewProvider in
             let adapter = RxNSOutlineViewRootNodeAdapter<OutlineNode>(
                 options: options,
                 cellViewProvider: cellViewProvider,
-                rowViewProvider: rowViewProvider
+                rowViewProvider: rowViewProvider,
             )
             return self.nodes(adapter: adapter)(source)
         }
@@ -70,7 +70,7 @@ extension Reactive where Base: NSOutlineView {
     /// Curried form for `.drive(outlineView.rx.rootNode(options:)) { ... }` /
     /// `.bind(to: outlineView.rx.rootNode(options:)) { ... }` usage.
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == OutlineNode {
         return { source in
@@ -81,7 +81,7 @@ extension Reactive where Base: NSOutlineView {
     /// Curried form for `.drive(outlineView.rx.rootNode(options:)) { ... }` with
     /// a row-view provider.
     public func rootNode<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == OutlineNode {
         return { source in
@@ -109,7 +109,7 @@ extension Reactive where Base: NSOutlineView {
 
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == [OutlineNode] {
         return { viewForItem in
@@ -119,14 +119,14 @@ extension Reactive where Base: NSOutlineView {
 
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
         source: Source,
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == [OutlineNode] {
         return { cellViewProvider, rowViewProvider in
             let adapter = RxNSOutlineViewAdapter<OutlineNode>(
                 options: options,
                 cellViewProvider: cellViewProvider,
-                rowViewProvider: rowViewProvider
+                rowViewProvider: rowViewProvider,
             )
             return self.nodes(adapter: adapter)(source)
         }
@@ -135,7 +135,7 @@ extension Reactive where Base: NSOutlineView {
     /// Curried form for `.drive(outlineView.rx.nodes(options:)) { ... }` /
     /// `.bind(to: outlineView.rx.nodes(options:)) { ... }` usage.
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>) -> Disposable
         where Source.Element == [OutlineNode] {
         return { source in
@@ -146,7 +146,7 @@ extension Reactive where Base: NSOutlineView {
     /// Curried form for `.drive(outlineView.rx.nodes(options:)) { ... }` with
     /// a row-view provider.
     public func nodes<OutlineNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
-        options: RxNSOutlineViewAdapterOptions
+        options: RxNSOutlineViewAdapterOptions,
     ) -> (_ source: Source) -> (@escaping OutlineCellViewProvider<OutlineNode>, OutlineRowViewProvider<OutlineNode>?) -> Disposable
         where Source.Element == [OutlineNode] {
         return { source in
@@ -159,7 +159,7 @@ extension Reactive where Base: NSOutlineView {
         -> Disposable where Source.Element == Adapter.Element {
         return { source in
             let dataSourceSubscription = source.subscribeProxyDataSource(ofObject: base, dataSource: adapter, retainDataSource: true) { [weak outlineView = base] (_: RxNSOutlineViewDataSourceProxy, event) in
-                guard let outlineView = outlineView else { return }
+                guard let outlineView else { return }
                 adapter.outlineView(outlineView, observedEvent: event)
             }
             let delegateSubscription = RxNSOutlineViewDelegateProxy.proxy(for: base).setRequiredMethodDelegate(adapter)
@@ -243,16 +243,37 @@ extension Reactive where Base: NSOutlineView {
 
     // MARK: - Model events
 
-    public func modelDoubleClicked<Item>() -> ControlEvent<Item> {
-        return _modelForControlEvent(itemDoubleClicked())
+    public func itemSelected() -> ControlEvent<TableIndex> {
+        return base.rx.controlEventForNotification(NSOutlineView.selectionDidChangeNotification, object: base) { notification in
+            guard let base = notification.object as? NSOutlineView else { return nil }
+            return (base.selectedRow, base.selectedColumn)
+        }
     }
-
+    
     public func modelClicked<Item>() -> ControlEvent<Item> {
         return _modelForControlEvent(itemClicked())
     }
 
+    public func modelDoubleClicked<Item>() -> ControlEvent<Item> {
+        return _modelForControlEvent(itemDoubleClicked())
+    }
+
     public func modelSelected<Item>() -> ControlEvent<Item> {
-        return _modelForControlEvent(itemSelected())
+        return itemSelected().compactMap { [weak base] tableIndex in
+            guard let base else { return nil }
+            return base.item(atRow: tableIndex.row) as? Item
+        }.asControlEvent()
+    }
+
+    /// Emits selection changes whose triggering `NSEvent` passes `shouldEmit`.
+    /// The window's `currentEvent` is forwarded as-is; `nil` means the selection
+    /// was changed programmatically (no input event in flight).
+    public func modelSelectedFilteringCurrentEvent<Item>(
+        _ shouldEmit: @escaping (NSEvent?) -> Bool
+    ) -> ControlEvent<Item> {
+        modelSelected().filter { [weak base] _ in
+            shouldEmit(base?.window?.currentEvent)
+        }.asControlEvent()
     }
 
     private func _modelForControlEvent<Item>(_ controlEvent: ControlEvent<TableIndex>) -> ControlEvent<Item> {

@@ -28,13 +28,18 @@ extension Reactive where Base: AnyObject {
         }
         return ControlEvent(events: source)
     }
-    
+
+    func controlEventForNotification<T>(_ notificationName: Notification.Name, object: AnyObject?, transform: @escaping (Notification) throws -> T?) -> ControlEvent<T> {
+        let source = NotificationCenter.default.rx.notification(notificationName, object: object).compactMap {
+            try transform($0)
+        }
+        return ControlEvent(events: source)
+    }
+
     func controlEventForSelector(_ selector: Selector) -> ControlEvent<Void> {
         let source = methodInvoked(selector).map { _ in }
         return ControlEvent(events: source)
     }
-    
-    
 }
 
 extension Reactive where Base: NSObject {
