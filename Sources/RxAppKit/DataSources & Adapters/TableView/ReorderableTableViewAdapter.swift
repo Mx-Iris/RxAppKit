@@ -23,6 +23,12 @@ open class ReorderableTableViewAdapter<T>: TableViewAdapter<T>, RxNSTableViewReo
 
     open var isReorderingEnabled: Bool = true
 
+    /// How an accepted drop is applied to the view. Defaults to `.immediate`,
+    /// which commits and `reloadData()`s inside `acceptDrop` — the right
+    /// behavior for reload-mode and for direct (non-Rx) usage. The diffable Rx
+    /// adapter switches this to `.deferredToBinding`.
+    open var reorderCommitStrategy: ReorderCommitStrategy = .immediate
+
     public let itemMoved = PublishSubject<(sourceIndexes: IndexSet, destinationIndex: Int)>()
     public let modelMoved = PublishSubject<[Any]>()
 
@@ -104,7 +110,7 @@ open class ReorderableTableViewAdapter<T>: TableViewAdapter<T>, RxNSTableViewReo
 
         reorderingHandlers.willReorder?(draggedItems, targetRow)
 
-        // Build new items array via override (model remains unchanged for Rx round-trip)
+        // Build the new ordering.
         var newItems = currentItems
         for index in sortedIndexes {
             newItems.remove(at: index)
@@ -112,11 +118,24 @@ open class ReorderableTableViewAdapter<T>: TableViewAdapter<T>, RxNSTableViewReo
         for (offset, item) in draggedItems.enumerated() {
             newItems.insert(item, at: targetRow + offset)
         }
-        itemsOverride = newItems
 
-        reorderingHandlers.didReorder?(currentItems)
+        switch reorderCommitStrategy {
+        case .immediate:
+            // Reload mode: commit and refresh the view directly. Self-contained,
+            // so the view updates even without an upstream round-trip.
+            resetReorderingState()
+            items = newItems
+            tableView.reloadData()
+        case .deferredToBinding:
+            // Diffable mode: stage the new ordering and let the bound Observable
+            // drive the animated update on its next emission. The committed
+            // `items` stay unchanged until then.
+            itemsOverride = newItems
+        }
+
+        reorderingHandlers.didReorder?(newItems)
         itemMoved.onNext((sourceIndexes: draggingRowIndexes, destinationIndex: targetRow))
-        modelMoved.onNext(currentItems.map { $0 as Any })
+        modelMoved.onNext(newItems.map { $0 as Any })
         draggingRowIndexes = []
         return true
     }

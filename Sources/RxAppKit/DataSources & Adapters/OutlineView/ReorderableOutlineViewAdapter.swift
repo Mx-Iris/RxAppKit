@@ -73,6 +73,13 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
     /// untouched.
     open var expandsDropDestination: Bool = true
 
+    /// How an accepted drop is applied to the view. Defaults to `.immediate`,
+    /// which mutates the override structure and `reloadData()`s inside
+    /// `acceptDrop` — the right behavior for reload-mode and for direct (non-Rx)
+    /// usage. The diffable Rx adapter switches this to `.deferredToBinding`,
+    /// recording a `PendingDragOperation` that the binder applies via `moveItem`.
+    open var reorderCommitStrategy: ReorderCommitStrategy = .immediate
+
     public let outlineItemMoved = PublishSubject<OutlineMove>()
     public let modelMoved = PublishSubject<[Any]>()
 
@@ -365,18 +372,34 @@ open class ReorderableOutlineViewAdapter<OutlineNode: OutlineNodeType>: OutlineV
             setChildren(destinationChildren, for: destinationParent)
         }
 
-        // Record the AppKit-level move so downstream code (the Rx binder) can drive
-        // `outlineView.moveItem(at:inParent:to:inParent:)` precisely instead of
-        // computing a flat-array diff that can't represent cross-parent moves.
-        let pending = PendingDragOperation(
-            sourceParent: sourceParent,
-            sortedSourceChildIndexes: sortedAscending,
-            destinationParent: destinationParent,
-            baseInsertionIndex: insertionIndex,
-            isSameParent: isSameNode(sourceParent, destinationParent)
-        )
-        pendingDragOperation = pending
-        _RxAppKitDebugLog("acceptDrop after-mutate: pending=(srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), srcIdxs=\(pending.sortedSourceChildIndexes), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), sameParent=\(pending.isSameParent)), rootOverride=\(rootNodesOverride.map { "[\($0.count)]" } ?? "nil"), childOverrides.count=\(childOverrides.count)")
+        switch reorderCommitStrategy {
+        case .deferredToBinding:
+            // Diffable: record the AppKit-level move so the Rx binder can drive
+            // `outlineView.moveItem(at:inParent:to:inParent:)` precisely instead
+            // of a flat-array diff that can't represent cross-parent moves. The
+            // overrides above carry the staged structure until then.
+            let pending = PendingDragOperation(
+                sourceParent: sourceParent,
+                sortedSourceChildIndexes: sortedAscending,
+                destinationParent: destinationParent,
+                baseInsertionIndex: insertionIndex,
+                isSameParent: isSameNode(sourceParent, destinationParent)
+            )
+            pendingDragOperation = pending
+            _RxAppKitDebugLog("acceptDrop deferred: pending=(srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), srcIdxs=\(pending.sortedSourceChildIndexes), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), sameParent=\(pending.isSameParent)), rootOverride=\(rootNodesOverride.map { "[\($0.count)]" } ?? "nil"), childOverrides.count=\(childOverrides.count)")
+        case .immediate:
+            // Reload: the overrides now reflect the new structure. Refresh the
+            // view directly — `reloadData()` re-queries children, so cross-parent
+            // moves render correctly without an upstream round-trip. The override
+            // is kept (not reset) so it keeps backing the view until the bound
+            // sequence, if any, replaces the data.
+            pendingDragOperation = nil
+            _RxAppKitDebugLog("acceptDrop immediate: reloadData(), rootOverride=\(rootNodesOverride.map { "[\($0.count)]" } ?? "nil"), childOverrides.count=\(childOverrides.count)")
+            outlineView.reloadData()
+            if expandsDropDestination, let destinationParent {
+                outlineView.expandItem(destinationParent)
+            }
+        }
 
         if isRootOnlyMove {
             let newRootNodes = currentChildren(of: nil)

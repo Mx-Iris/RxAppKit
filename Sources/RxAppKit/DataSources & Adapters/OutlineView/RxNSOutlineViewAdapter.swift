@@ -34,6 +34,10 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
         if !options.contains(.reorderable) {
             isReorderingEnabled = false
         }
+        // Diffable drops animate through the binding pipeline (overrides +
+        // `PendingDragOperation` + `moveItem`); reload drops commit immediately
+        // inside `acceptDrop`.
+        reorderCommitStrategy = options.contains(.diffable) ? .deferredToBinding : .immediate
     }
 
     open override func setupReordering(for outlineView: NSOutlineView) {
@@ -57,8 +61,23 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
             setupReordering(for: outlineView)
         }
 
+        guard options.contains(.diffable) else {
+            // Reload: a drop is already committed in `acceptDrop` via reloadData.
+            // An upstream emission just replaces the data and reloads, resetting
+            // any drag override so it no longer shadows the new data.
+            guard oldArray != newArray else {
+                _RxAppKitDebugLog("performUpdate (reload) SKIP: oldArray==newArray")
+                return
+            }
+            _RxAppKitDebugLog("performUpdate (reload): resetReorderingState + reloadData()")
+            resetReorderingState()
+            commit(newArray)
+            outlineView.reloadData()
+            return
+        }
+
         let applyUpdate: () -> Void = {
-            if self.options.contains(.reorderable), let pending = self.pendingDragOperation {
+            if let pending = self.pendingDragOperation {
                 _RxAppKitDebugLog("applyUpdate (drag path) BEGIN: pending=(srcParent=\(_rxAppKitDebugDescribe(pending.sourceParent)), srcIdxs=\(pending.sortedSourceChildIndexes), dstParent=\(_rxAppKitDebugDescribe(pending.destinationParent)), baseIdx=\(pending.baseInsertionIndex), sameParent=\(pending.isSameParent))")
                 self.pendingDragOperation = nil
                 self.resetReorderingState()
@@ -73,25 +92,19 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
                 return
             }
 
-            if self.options.contains(.diffable) {
-                let changeset = StagedChangeset(source: oldArray, target: newArray)
-                _RxAppKitDebugLog("applyUpdate (diff path) BEGIN: stages=\(changeset.count)")
-                if changeset.isEmpty {
-                    commit(newArray)
-                    return
-                }
-                outlineView.reload(using: changeset, with: [], inParent: nil) { changeset in
-                    !changeset.isOutlineViewSafe
-                        || changeset.totalElementChangeCount > self.animatedReloadThreshold
-                } setData: { staged in
-                    commit(staged)
-                }
-                _RxAppKitDebugLog("applyUpdate (diff path) END: outlineView.rows=\(outlineView.numberOfRows)")
-            } else {
-                _RxAppKitDebugLog("applyUpdate (reload path): reloadData()")
+            let changeset = StagedChangeset(source: oldArray, target: newArray)
+            _RxAppKitDebugLog("applyUpdate (diff path) BEGIN: stages=\(changeset.count)")
+            if changeset.isEmpty {
                 commit(newArray)
-                outlineView.reloadData()
+                return
             }
+            outlineView.reload(using: changeset, with: [], inParent: nil) { changeset in
+                !changeset.isOutlineViewSafe
+                    || changeset.totalElementChangeCount > self.animatedReloadThreshold
+            } setData: { staged in
+                commit(staged)
+            }
+            _RxAppKitDebugLog("applyUpdate (diff path) END: outlineView.rows=\(outlineView.numberOfRows)")
         }
 
         // Drag updates flow synchronously through `acceptDrop:` -> Rx, but
@@ -99,7 +112,7 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
         // the event lands. Deferring lets AppKit finish before we touch rows;
         // otherwise its row-to-item mapping ends up out of sync and the next
         // drag misaligns.
-        if options.contains(.reorderable), pendingDragOperation != nil {
+        if pendingDragOperation != nil {
             _RxAppKitDebugLog("performUpdate: pending != nil → DISPATCH ASYNC")
             DispatchQueue.main.async(execute: applyUpdate)
         } else {

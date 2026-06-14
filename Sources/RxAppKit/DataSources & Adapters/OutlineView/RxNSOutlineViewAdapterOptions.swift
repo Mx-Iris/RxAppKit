@@ -8,20 +8,23 @@ import Foundation
 /// - `.diffable` drives incremental, animated updates via DifferenceKit's
 ///   `StagedChangeset`. Without it the adapter falls back to `reloadData()`
 ///   on every event, which is the safest baseline.
-/// - `.reorderable` registers the outline view for drag-and-drop reordering
-///   and drives accepted drops through
-///   `NSOutlineView.moveItem(at:inParent:to:inParent:)` so the view's row
-///   mapping stays in sync.
+/// - `.reorderable` registers the outline view for drag-and-drop reordering.
+///   Without `.diffable`, an accepted drop is committed immediately and the
+///   outline is reloaded in place — self-contained, no round-trip required,
+///   and cross-parent moves render correctly because `reloadData()` re-queries
+///   the children. With `.diffable`, the drop is staged and driven through
+///   `NSOutlineView.moveItem(at:inParent:to:inParent:)` when the bound sequence
+///   re-emits, keeping the view's row mapping in sync while animating.
 ///
 /// The options are independent and can be combined. The four combinations
 /// produce the following behaviors:
 ///
-/// | options                     | non-drag update    | drag update     |
-/// | --------------------------- | ------------------ | --------------- |
-/// | `[]`                        | `reloadData()`     | n/a             |
-/// | `[.diffable]`               | `StagedChangeset`  | n/a             |
-/// | `[.reorderable]`            | `reloadData()`     | `applyDragMove` |
-/// | `[.diffable, .reorderable]` | `StagedChangeset`  | `applyDragMove` |
+/// | options                     | non-drag update    | drag update             |
+/// | --------------------------- | ------------------ | ----------------------- |
+/// | `[]`                        | `reloadData()`     | n/a                     |
+/// | `[.diffable]`               | `StagedChangeset`  | n/a                     |
+/// | `[.reorderable]`            | `reloadData()`     | commit + `reloadData()` |
+/// | `[.diffable, .reorderable]` | `StagedChangeset`  | `applyDragMove`         |
 public struct RxNSOutlineViewAdapterOptions: OptionSet, Sendable, Hashable {
     public let rawValue: Int
 

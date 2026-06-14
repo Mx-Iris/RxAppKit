@@ -22,6 +22,9 @@ open class RxNSTableViewAdapter<T: Differentiable>:
         if !options.contains(.reorderable) {
             isReorderingEnabled = false
         }
+        // Diffable drops animate through the binding pipeline (override + round-trip);
+        // reload drops commit immediately inside `acceptDrop`.
+        reorderCommitStrategy = options.contains(.diffable) ? .deferredToBinding : .immediate
     }
 
     open override func setupReordering(for tableView: NSTableView) {
@@ -35,10 +38,14 @@ open class RxNSTableViewAdapter<T: Differentiable>:
                 dataSource.setupReordering(for: tableView)
             }
 
-            let hadOverride = dataSource.hasItemsOverride
-            dataSource.resetReorderingState()
-
             if dataSource.options.contains(.diffable) {
+                // Diffable: a drop stages the new ordering as an override
+                // (see `ReorderableTableViewAdapter`); the upstream emission is
+                // applied here through a StagedChangeset. Clear any pending drag
+                // override first so the diff runs against the committed `items`.
+                let hadOverride = dataSource.hasItemsOverride
+                dataSource.resetReorderingState()
+
                 let changeset = StagedChangeset(source: dataSource.items, target: newItems)
                 if changeset.isEmpty {
                     if hadOverride { tableView.reloadData() }
@@ -50,6 +57,9 @@ open class RxNSTableViewAdapter<T: Differentiable>:
                     dataSource.items = $0
                 }
             } else {
+                // Reload: a drop is already committed in `acceptDrop`. An upstream
+                // emission simply replaces the data and reloads (idempotent when
+                // it echoes a just-applied drop via `modelMoved`).
                 dataSource.items = newItems
                 tableView.reloadData()
             }

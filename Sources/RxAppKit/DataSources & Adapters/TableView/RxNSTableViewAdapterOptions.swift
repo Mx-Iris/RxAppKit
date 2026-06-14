@@ -8,18 +8,21 @@ import Foundation
 /// - `.diffable` drives incremental updates via DifferenceKit's
 ///   `StagedChangeset`. Without it the adapter falls back to `reloadData()`
 ///   on every event, which is the safest baseline.
-/// - `.reorderable` registers the table view for drag-and-drop reordering
-///   and feeds accepted drops back into the bound model.
+/// - `.reorderable` registers the table view for drag-and-drop reordering.
+///   Without `.diffable`, an accepted drop is committed immediately and the
+///   table is reloaded in place — self-contained, no round-trip required.
+///   With `.diffable`, the drop is staged and applied when the bound sequence
+///   re-emits (route `modelMoved` back into the source), so the move animates.
 ///
 /// The options are independent and can be combined. The four combinations
 /// produce the following behaviors:
 ///
-/// | options                     | non-drag update    | drag update       |
-/// | --------------------------- | ------------------ | ----------------- |
-/// | `[]`                        | `reloadData()`     | n/a               |
-/// | `[.diffable]`               | `StagedChangeset`  | n/a               |
-/// | `[.reorderable]`            | `reloadData()`     | model round-trip  |
-/// | `[.diffable, .reorderable]` | `StagedChangeset`  | model round-trip  |
+/// | options                     | non-drag update    | drag update              |
+/// | --------------------------- | ------------------ | ------------------------ |
+/// | `[]`                        | `reloadData()`     | n/a                      |
+/// | `[.diffable]`               | `StagedChangeset`  | n/a                      |
+/// | `[.reorderable]`            | `reloadData()`     | commit + `reloadData()`  |
+/// | `[.diffable, .reorderable]` | `StagedChangeset`  | staged + model round-trip|
 public struct RxNSTableViewAdapterOptions: OptionSet, Sendable, Hashable {
     public let rawValue: Int
 
