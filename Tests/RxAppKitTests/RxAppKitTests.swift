@@ -1,6 +1,7 @@
 import AppKit
 import DifferenceKit
 import RxSwift
+import RxCocoa
 import Testing
 @testable import RxAppKit
 
@@ -700,5 +701,188 @@ final class ApplyDragMoveTests {
         #expect(outlineView.childIndex(forItem: nodeC) == 1)
         #expect(outlineView.numberOfChildren(ofItem: groupG1) == 2)
         #expect(outlineView.numberOfChildren(ofItem: groupG2) == 2)
+    }
+}
+
+// MARK: - Sectioned test models
+
+private struct SectionHeaderModel: Differentiable, Hashable {
+    let id: String
+    init(_ id: String) { self.id = id }
+    var differenceIdentifier: String { id }
+    func isContentEqual(to source: SectionHeaderModel) -> Bool { id == source.id }
+}
+
+private struct SectionItemModel: Differentiable, Hashable {
+    let id: String
+    init(_ id: String) { self.id = id }
+    var differenceIdentifier: String { id }
+    func isContentEqual(to source: SectionItemModel) -> Bool { id == source.id }
+}
+
+@MainActor
+@Suite("RxNSTableViewSectionedReloadAdapter")
+final class RxNSTableViewSectionedReloadAdapterTests {
+    private let tableView: NSTableView
+
+    init() {
+        let tableView = NSTableView(frame: NSRect(x: 0, y: 0, width: 200, height: 400))
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(rawValue: "col"))
+        column.width = 180
+        tableView.addTableColumn(column)
+        self.tableView = tableView
+    }
+
+    private func makeAdapter() -> RxNSTableViewSectionedReloadAdapter<SectionHeaderModel, SectionItemModel> {
+        let adapter = RxNSTableViewSectionedReloadAdapter<SectionHeaderModel, SectionItemModel>(
+            headerViewProvider: { _, _, _ in NSTableCellView() },
+            cellViewProvider: { _, _, _, _ in NSTableCellView() }
+        )
+        tableView.dataSource = adapter
+        tableView.delegate = adapter
+        return adapter
+    }
+
+    private func section(_ id: String, _ items: [String]) -> ArraySection<SectionHeaderModel, SectionItemModel> {
+        ArraySection(model: SectionHeaderModel(id), elements: items.map(SectionItemModel.init))
+    }
+
+    @Test func flattensHeaderAndItemRowsIntoLinearStream() {
+        let adapter = makeAdapter()
+        adapter.tableView(tableView, observedEvent: .next([
+            section("S1", ["a", "b"]),
+            section("S2", ["c"]),
+        ]))
+        // 2 section headers + 3 items
+        #expect(tableView.numberOfRows == 5)
+        let groupFlags = (0..<tableView.numberOfRows).map { adapter.tableView(tableView, isGroupRow: $0) }
+        #expect(groupFlags == [true, false, false, true, false])
+    }
+
+    @Test func modelAtReturnsHeaderOrItem() throws {
+        let adapter = makeAdapter()
+        adapter.tableView(tableView, observedEvent: .next([section("S1", ["a", "b"])]))
+        #expect((try adapter.model(at: 0) as? SectionHeaderModel)?.id == "S1")
+        #expect((try adapter.model(at: 1) as? SectionItemModel)?.id == "a")
+        #expect((try adapter.model(at: 2) as? SectionItemModel)?.id == "b")
+    }
+
+    @Test func reloadReplacesSections() {
+        let adapter = makeAdapter()
+        adapter.tableView(tableView, observedEvent: .next([section("S1", ["a", "b"])]))
+        #expect(tableView.numberOfRows == 3)
+        adapter.tableView(tableView, observedEvent: .next([
+            section("S1", ["a"]),
+            section("S2", ["c", "d"]),
+        ]))
+        #expect(tableView.numberOfRows == 5)
+        let groupFlags = (0..<tableView.numberOfRows).map { adapter.tableView(tableView, isGroupRow: $0) }
+        #expect(groupFlags == [true, false, true, false, false])
+    }
+
+    @Test func proxyForwardsIsGroupRow() {
+        // Bind through the real proxy chain to verify the delegate proxy actually
+        // advertises and forwards `isGroupRow` (guards the @objc inference trap).
+        let disposable = tableView.rx.sections(Observable.just([section("S1", ["a", "b"])]))(
+            { _, _, _ in NSTableCellView() },
+            { _, _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+        let delegate = tableView.delegate
+        #expect(delegate?.responds(to: #selector(NSTableViewDelegate.tableView(_:isGroupRow:))) == true)
+        #expect(delegate?.tableView?(tableView, isGroupRow: 0) == true)
+        #expect(delegate?.tableView?(tableView, isGroupRow: 1) == false)
+    }
+}
+
+@MainActor
+@Suite("RxNSOutlineViewSectionedAdapter")
+final class RxNSOutlineViewSectionedAdapterTests {
+    private let window: NSWindow
+    private let outlineView: NSOutlineView
+
+    init() {
+        let outlineView = NSOutlineView(frame: NSRect(x: 0, y: 0, width: 200, height: 400))
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(rawValue: "col"))
+        column.width = 180
+        outlineView.addTableColumn(column)
+        outlineView.outlineTableColumn = column
+
+        let scrollView = NSScrollView(frame: NSRect(x: 0, y: 0, width: 200, height: 400))
+        scrollView.documentView = outlineView
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 200, height: 400),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = scrollView
+        window.makeKeyAndOrderFront(nil)
+
+        self.outlineView = outlineView
+        self.window = window
+    }
+
+    private func makeAdapter(options: RxNSOutlineViewAdapterOptions = []) -> RxNSOutlineViewSectionedAdapter<SectionHeaderModel, TestNode> {
+        let adapter = RxNSOutlineViewSectionedAdapter<SectionHeaderModel, TestNode>(
+            options: options,
+            sectionHeaderViewProvider: { _, _, _ in NSTableCellView() },
+            cellViewProvider: { _, _, _ in NSTableCellView() }
+        )
+        outlineView.dataSource = adapter
+        outlineView.delegate = adapter
+        return adapter
+    }
+
+    private func section(_ id: String, _ nodes: [TestNode]) -> ArraySection<SectionHeaderModel, TestNode> {
+        ArraySection(model: SectionHeaderModel(id), elements: nodes)
+    }
+
+    @Test func topLevelItemsAreSectionGroupItems() {
+        let adapter = makeAdapter()
+        adapter.outlineView(outlineView, observedEvent: .next([
+            section("S1", [TestNode("a"), TestNode("b")]),
+            section("S2", [TestNode("c")]),
+        ]))
+        // Two collapsed sections at the root.
+        #expect(outlineView.numberOfRows == 2)
+        for row in 0..<outlineView.numberOfRows {
+            #expect(adapter.outlineView(outlineView, isGroupItem: outlineView.item(atRow: row) as Any) == true)
+        }
+    }
+
+    @Test func expandingSectionRevealsChildNodes() {
+        let adapter = makeAdapter()
+        adapter.outlineView(outlineView, observedEvent: .next([
+            section("S1", [TestNode("a"), TestNode("b")]),
+        ]))
+        outlineView.expandItem(outlineView.item(atRow: 0))
+        #expect(outlineView.numberOfRows == 3) // header + a + b
+        #expect(adapter.outlineView(outlineView, isGroupItem: outlineView.item(atRow: 1) as Any) == false)
+        #expect(adapter.outlineView(outlineView, isGroupItem: outlineView.item(atRow: 2) as Any) == false)
+    }
+
+    @Test func childNodesKeepTheirOwnHierarchy() {
+        let adapter = makeAdapter()
+        adapter.outlineView(outlineView, observedEvent: .next([
+            section("S1", [TestNode("Parent", children: [TestNode("A"), TestNode("B")])]),
+        ]))
+        outlineView.expandItem(outlineView.item(atRow: 0)) // expand section S1
+        outlineView.expandItem(outlineView.item(atRow: 1)) // expand child "Parent"
+        #expect(outlineView.numberOfRows == 4) // S1, Parent, A, B
+    }
+
+    @Test func proxyForwardsIsGroupItem() {
+        // Bind through the real proxy chain to verify the delegate proxy actually
+        // advertises and forwards `isGroupItem` (guards the @objc inference trap).
+        let disposable = outlineView.rx.sections(source: Observable.just([section("S1", [TestNode("a")])]))(
+            { _, _, _ in NSTableCellView() },
+            { _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+        let delegate = outlineView.delegate
+        #expect(delegate?.responds(to: #selector(NSOutlineViewDelegate.outlineView(_:isGroupItem:))) == true)
+        #expect(delegate?.outlineView?(outlineView, isGroupItem: outlineView.item(atRow: 0) as Any) == true)
     }
 }

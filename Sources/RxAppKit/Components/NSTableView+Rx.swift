@@ -15,6 +15,17 @@ extension Reactive where Base: NSTableView {
     
     public typealias TableRowViewProvider<Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ items: [Item]) -> NSTableRowView
 
+    /// A section for a sectioned `NSTableView` binding: a `SectionHeader` model
+    /// plus its `Item` elements. Backed by DifferenceKit's `ArraySection`, the
+    /// same container the sectioned `NSCollectionView` bindings use.
+    public typealias TableViewSection<SectionHeader: Differentiable, Item: Differentiable> = ArraySection<SectionHeader, Item>
+
+    public typealias TableSectionHeaderViewProvider<SectionHeader: Differentiable> = (_ tableView: NSTableView, _ sectionIndex: Int, _ header: SectionHeader) -> NSView?
+
+    public typealias TableSectionCellViewProvider<Item: Differentiable> = (_ tableView: NSTableView, _ tableColumn: NSTableColumn?, _ indexPath: IndexPath, _ item: Item) -> NSView?
+
+    public typealias TableSectionRowViewProvider<SectionHeader: Differentiable, Item: Differentiable> = (_ tableView: NSTableView, _ row: Int, _ rowKind: SectionedTableViewAdapter<SectionHeader, Item>.RowKind) -> NSTableRowView?
+
     private var _tableViewDelegate: RxNSTableViewDelegateProxy {
         .proxy(for: base)
     }
@@ -105,6 +116,55 @@ extension Reactive where Base: NSTableView {
             }
             let delegateSubscription = RxNSTableViewDelegateProxy.installRequiredMethodDelegate(adapter, retainDelegate: false, onProxyForObject: base)
             return Disposables.create([dataSourceSubscription, delegateSubscription])
+        }
+    }
+
+    // MARK: - sections
+
+    public func sections<SectionHeader: Differentiable, Item: Differentiable, Source: ObservableType>(_ source: Source)
+        -> (_ headerViewProvider: @escaping TableSectionHeaderViewProvider<SectionHeader>,
+            _ cellViewProvider: @escaping TableSectionCellViewProvider<Item>) -> Disposable
+    where Source.Element == [TableViewSection<SectionHeader, Item>] {
+        return { headerViewProvider, cellViewProvider in
+            self.sections(source, options: [])(headerViewProvider, cellViewProvider, nil)
+        }
+    }
+
+    public func sections<SectionHeader: Differentiable, Item: Differentiable, Source: ObservableType>(_ source: Source)
+        -> (_ headerViewProvider: @escaping TableSectionHeaderViewProvider<SectionHeader>,
+            _ cellViewProvider: @escaping TableSectionCellViewProvider<Item>,
+            _ rowViewProvider: TableSectionRowViewProvider<SectionHeader, Item>?) -> Disposable
+    where Source.Element == [TableViewSection<SectionHeader, Item>] {
+        return { headerViewProvider, cellViewProvider, rowViewProvider in
+            self.sections(source, options: [])(headerViewProvider, cellViewProvider, rowViewProvider)
+        }
+    }
+
+    public func sections<SectionHeader: Differentiable, Item: Differentiable, Source: ObservableType>(
+        _ source: Source,
+        options: RxNSTableViewAdapterOptions
+    ) -> (_ headerViewProvider: @escaping TableSectionHeaderViewProvider<SectionHeader>,
+          _ cellViewProvider: @escaping TableSectionCellViewProvider<Item>) -> Disposable
+    where Source.Element == [TableViewSection<SectionHeader, Item>] {
+        return { headerViewProvider, cellViewProvider in
+            self.sections(source, options: options)(headerViewProvider, cellViewProvider, nil)
+        }
+    }
+
+    public func sections<SectionHeader: Differentiable, Item: Differentiable, Source: ObservableType>(
+        _ source: Source,
+        options: RxNSTableViewAdapterOptions
+    ) -> (_ headerViewProvider: @escaping TableSectionHeaderViewProvider<SectionHeader>,
+          _ cellViewProvider: @escaping TableSectionCellViewProvider<Item>,
+          _ rowViewProvider: TableSectionRowViewProvider<SectionHeader, Item>?) -> Disposable
+    where Source.Element == [TableViewSection<SectionHeader, Item>] {
+        return { headerViewProvider, cellViewProvider, rowViewProvider in
+            let adapter = RxNSTableViewSectionedReloadAdapter<SectionHeader, Item>(
+                headerViewProvider: headerViewProvider,
+                cellViewProvider: cellViewProvider,
+                rowViewProvider: rowViewProvider
+            )
+            return self.items(adapter: adapter)(source)
         }
     }
 

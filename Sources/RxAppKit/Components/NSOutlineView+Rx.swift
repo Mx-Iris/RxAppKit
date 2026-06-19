@@ -8,6 +8,14 @@ extension Reactive where Base: NSOutlineView {
 
     public typealias OutlineRowViewProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ node: OutlineNode) -> NSTableRowView?
 
+    /// A section for a sectioned `NSOutlineView` binding: a `SectionHeader` model
+    /// plus its child `ChildNode`s. Each child node may itself be a tree, so the
+    /// outline keeps its hierarchy under every section. Backed by DifferenceKit's
+    /// `ArraySection`, symmetric with the sectioned `NSTableView` binding.
+    public typealias OutlineViewSection<SectionHeader: Differentiable & Hashable, ChildNode: OutlineNodeType & Differentiable & Hashable> = ArraySection<SectionHeader, ChildNode>
+
+    public typealias OutlineSectionHeaderViewProvider<SectionHeader: Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ header: SectionHeader) -> NSView?
+
     private var _outlineViewDelegate: RxNSOutlineViewDelegateProxy {
         .proxy(for: base)
     }
@@ -164,6 +172,56 @@ extension Reactive where Base: NSOutlineView {
             }
             let delegateSubscription = RxNSOutlineViewDelegateProxy.proxy(for: base).setRequiredMethodDelegate(adapter)
             return Disposables.create([dataSourceSubscription, delegateSubscription])
+        }
+    }
+
+    // MARK: - sections
+
+    public func sections<SectionHeader: Differentiable & Hashable, ChildNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (_ sectionHeaderViewProvider: @escaping OutlineSectionHeaderViewProvider<SectionHeader>,
+            _ cellViewProvider: @escaping OutlineCellViewProvider<ChildNode>) -> Disposable
+        where Source.Element == [OutlineViewSection<SectionHeader, ChildNode>] {
+        return { sectionHeaderViewProvider, cellViewProvider in
+            self.sections(source: source, options: [])(sectionHeaderViewProvider, cellViewProvider, nil)
+        }
+    }
+
+    public func sections<SectionHeader: Differentiable & Hashable, ChildNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(source: Source)
+        -> (_ sectionHeaderViewProvider: @escaping OutlineSectionHeaderViewProvider<SectionHeader>,
+            _ cellViewProvider: @escaping OutlineCellViewProvider<ChildNode>,
+            _ rowViewProvider: OutlineRowViewProvider<ChildNode>?) -> Disposable
+        where Source.Element == [OutlineViewSection<SectionHeader, ChildNode>] {
+        return { sectionHeaderViewProvider, cellViewProvider, rowViewProvider in
+            self.sections(source: source, options: [])(sectionHeaderViewProvider, cellViewProvider, rowViewProvider)
+        }
+    }
+
+    public func sections<SectionHeader: Differentiable & Hashable, ChildNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        source: Source,
+        options: RxNSOutlineViewAdapterOptions,
+    ) -> (_ sectionHeaderViewProvider: @escaping OutlineSectionHeaderViewProvider<SectionHeader>,
+          _ cellViewProvider: @escaping OutlineCellViewProvider<ChildNode>) -> Disposable
+        where Source.Element == [OutlineViewSection<SectionHeader, ChildNode>] {
+        return { sectionHeaderViewProvider, cellViewProvider in
+            self.sections(source: source, options: options)(sectionHeaderViewProvider, cellViewProvider, nil)
+        }
+    }
+
+    public func sections<SectionHeader: Differentiable & Hashable, ChildNode: OutlineNodeType & Differentiable & Hashable, Source: ObservableType>(
+        source: Source,
+        options: RxNSOutlineViewAdapterOptions,
+    ) -> (_ sectionHeaderViewProvider: @escaping OutlineSectionHeaderViewProvider<SectionHeader>,
+          _ cellViewProvider: @escaping OutlineCellViewProvider<ChildNode>,
+          _ rowViewProvider: OutlineRowViewProvider<ChildNode>?) -> Disposable
+        where Source.Element == [OutlineViewSection<SectionHeader, ChildNode>] {
+        return { sectionHeaderViewProvider, cellViewProvider, rowViewProvider in
+            let adapter = RxNSOutlineViewSectionedAdapter<SectionHeader, ChildNode>(
+                options: options,
+                sectionHeaderViewProvider: sectionHeaderViewProvider,
+                cellViewProvider: cellViewProvider,
+                rowViewProvider: rowViewProvider
+            )
+            return self.nodes(adapter: adapter)(source)
         }
     }
 
