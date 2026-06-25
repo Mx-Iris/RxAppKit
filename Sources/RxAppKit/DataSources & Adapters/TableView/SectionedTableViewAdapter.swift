@@ -16,7 +16,7 @@ import DifferenceKit
 /// reorderable nor diffable; use `RxNSTableViewSectionedReloadAdapter` for the
 /// Rx binding, which reloads on every observed event.
 open class SectionedTableViewAdapter<SectionHeader: Differentiable, Item: Differentiable>:
-    NSObject, NSTableViewDataSource, NSTableViewDelegate, RowsViewDataSourceType {
+    NSObject, NSTableViewDataSource, NSTableViewDelegate, RowsViewDataSourceType, RxNSTableViewProposedSelectionEmitting {
 
     public typealias Section = ArraySection<SectionHeader, Item>
 
@@ -47,6 +47,8 @@ open class SectionedTableViewAdapter<SectionHeader: Differentiable, Item: Differ
     /// O(1) reverse lookup from a linear row index back to its logical kind.
     private var resolvedRows: [RowKind] = []
 
+    let _proposedSelection = PublishSubject<NSTableView.ProposedSelection>()
+
     public init(
         headerViewProvider: @escaping HeaderViewProvider,
         cellViewProvider: @escaping CellViewProvider,
@@ -56,6 +58,10 @@ open class SectionedTableViewAdapter<SectionHeader: Differentiable, Item: Differ
         self.cellViewProvider = cellViewProvider
         self.rowViewProvider = rowViewProvider
         super.init()
+    }
+
+    deinit {
+        _proposedSelection.onCompleted()
     }
 
     open func setSections(_ sections: [Section]) {
@@ -97,6 +103,15 @@ open class SectionedTableViewAdapter<SectionHeader: Differentiable, Item: Differ
 
     open func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
         return rowViewProvider?(tableView, row, resolvedRows[row])
+    }
+
+    /// AppKit invokes this only for user-driven selection changes (mouse,
+    /// keyboard, type-select). Emitting here lets `Reactive.proposedSelection()`
+    /// expose a clean stream without the programmatic-selection noise that
+    /// `selectionDidChangeNotification` carries.
+    @objc open func tableView(_ tableView: NSTableView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
+        _proposedSelection.onNext(.init(indexes: proposedSelectionIndexes, triggeringEvent: tableView.window?.currentEvent))
+        return proposedSelectionIndexes
     }
 
     // MARK: - RowsViewDataSourceType

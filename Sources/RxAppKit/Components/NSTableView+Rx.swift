@@ -5,6 +5,29 @@ import DifferenceKit
 
 extension NSTableView: HasDoubleAction {}
 
+extension NSTableView {
+    /// Payload of ``Reactive/proposedSelection()`` — the indexes AppKit is about
+    /// to apply plus the input event that triggered the change (mouse, key, or
+    /// `nil` for changes the system itself originates).
+    public struct ProposedSelection {
+        public let indexes: IndexSet
+        public let triggeringEvent: NSEvent?
+
+        public init(indexes: IndexSet, triggeringEvent: NSEvent?) {
+            self.indexes = indexes
+            self.triggeringEvent = triggeringEvent
+        }
+    }
+}
+
+/// Implemented by table-view adapters that publish user-initiated selection
+/// changes (`tableView(_:selectionIndexesForProposedSelection:)`). The
+/// `Reactive` extension reads this subject through the proxy's required-method
+/// delegate, so the subject lives with the adapter (which owns selection
+/// behavior) rather than the proxy (which only forwards delegate calls).
+protocol RxNSTableViewProposedSelectionEmitting: AnyObject {
+    var _proposedSelection: PublishSubject<NSTableView.ProposedSelection> { get }
+}
 
 extension Reactive where Base: NSTableView {
     public typealias TableIndexSet = (rowIndexes: IndexSet, columnIndexes: IndexSet)
@@ -281,6 +304,48 @@ extension Reactive where Base: NSTableView {
         let source = itemSelected().compactMap { [weak view = base] clickedIndex -> T? in
             guard let view, view.isValidRowIndex(clickedIndex.row) else { return nil }
             return try view.rx.model(at: clickedIndex.row)
+        }
+        return ControlEvent(events: source)
+    }
+
+    // MARK: - User-initiated selection
+
+    /// Proposed selection indexes for user-driven selection changes only —
+    /// mouse, keyboard arrow, and type-select. Programmatic
+    /// `selectRowIndexes(_:byExtendingSelection:)`, `reloadData()` side effects,
+    /// and other internal selection adjustments do NOT emit here. Backed by
+    /// `tableView(_:selectionIndexesForProposedSelection:)`.
+    ///
+    /// `triggeringEvent` is the window's `currentEvent` captured synchronously
+    /// when AppKit invoked the delegate method, so callers can distinguish
+    /// click vs. arrow key vs. type-select.
+    public func proposedSelection() -> ControlEvent<NSTableView.ProposedSelection> {
+        let source = Observable<NSTableView.ProposedSelection>.deferred { [weak base] in
+            guard let emitter = (base?.delegate as? RxNSTableViewDelegateProxy)?._requiredMethodsDelegate.object as? RxNSTableViewProposedSelectionEmitting else {
+                return .empty()
+            }
+            return emitter._proposedSelection.asObservable()
+        }
+        return ControlEvent(events: source)
+    }
+
+    /// User-initiated single-row selection. Same source as ``proposedSelection()``;
+    /// for the multi-row case (`allowsMultipleSelection == true`) use
+    /// ``proposedSelection()`` directly.
+    public func userItemSelected() -> ControlEvent<TableIndex> {
+        let source = proposedSelection().compactMap { [weak base] proposed -> TableIndex? in
+            guard let base, let row = proposed.indexes.first else { return nil }
+            return (row, base.selectedColumn)
+        }
+        return ControlEvent(events: source)
+    }
+
+    /// User-initiated selection mapped through `rx.model(at:)`. Symmetric with
+    /// ``modelSelected()`` but does NOT fire for programmatic selection.
+    public func userModelSelected<T>() -> ControlEvent<T> {
+        let source = userItemSelected().compactMap { [weak view = base] selectedIndex -> T? in
+            guard let view, view.isValidRowIndex(selectedIndex.row) else { return nil }
+            return try view.rx.model(at: selectedIndex.row)
         }
         return ControlEvent(events: source)
     }

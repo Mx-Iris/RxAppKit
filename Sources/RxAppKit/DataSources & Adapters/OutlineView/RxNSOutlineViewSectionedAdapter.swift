@@ -32,18 +32,14 @@ import DifferenceKit
 final class RxNSOutlineViewSectionedAdapter<
     SectionHeader: Differentiable & Hashable,
     ChildNode: OutlineNodeType & Differentiable & Hashable
->: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, RxNSOutlineViewDataSourceType {
+>: OutlineViewAdapter<ChildNode>, RxNSOutlineViewDataSourceType {
 
     typealias Element = [ArraySection<SectionHeader, ChildNode>]
 
     typealias SectionHeaderViewProvider = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ header: SectionHeader) -> NSView?
-    typealias NodeCellViewProvider = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ node: ChildNode) -> NSView?
-    typealias NodeRowViewProvider = (_ outlineView: NSOutlineView, _ node: ChildNode) -> NSTableRowView?
 
     private let options: RxNSOutlineViewAdapterOptions
     private let sectionHeaderViewProvider: SectionHeaderViewProvider
-    private let cellViewProvider: NodeCellViewProvider
-    private let rowViewProvider: NodeRowViewProvider?
 
     private(set) var sections: [ArraySection<SectionHeader, ChildNode>] = []
 
@@ -56,14 +52,12 @@ final class RxNSOutlineViewSectionedAdapter<
     init(
         options: RxNSOutlineViewAdapterOptions = [],
         sectionHeaderViewProvider: @escaping SectionHeaderViewProvider,
-        cellViewProvider: @escaping NodeCellViewProvider,
-        rowViewProvider: NodeRowViewProvider? = nil
+        cellViewProvider: @escaping CellViewProvider,
+        rowViewProvider: RowViewProvider? = nil
     ) {
         self.options = options
         self.sectionHeaderViewProvider = sectionHeaderViewProvider
-        self.cellViewProvider = cellViewProvider
-        self.rowViewProvider = rowViewProvider
-        super.init()
+        super.init(cellViewProvider: cellViewProvider, rowViewProvider: rowViewProvider)
     }
 
     private func setSections(_ sections: [ArraySection<SectionHeader, ChildNode>]) {
@@ -76,7 +70,7 @@ final class RxNSOutlineViewSectionedAdapter<
 
     // MARK: - NSOutlineViewDataSource
 
-    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+    override func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
         switch item {
         case .none:
             return sections.count
@@ -89,7 +83,7 @@ final class RxNSOutlineViewSectionedAdapter<
         }
     }
 
-    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+    override func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         switch item {
         case .none:
             return sections[index].model
@@ -102,7 +96,7 @@ final class RxNSOutlineViewSectionedAdapter<
         }
     }
 
-    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+    override func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
         switch item {
         case let header as SectionHeader:
             return (elementsByHeader[header]?.isEmpty == false)
@@ -115,20 +109,13 @@ final class RxNSOutlineViewSectionedAdapter<
 
     // MARK: - NSOutlineViewDelegate
 
-    @objc func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
-        switch item {
-        case let header as SectionHeader:
+    /// SectionHeader items go through `sectionHeaderViewProvider`; ChildNode items
+    /// fall through to the inherited `cellViewProvider` path on the base class.
+    override func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+        if let header = item as? SectionHeader {
             return sectionHeaderViewProvider(outlineView, tableColumn, header)
-        case let node as ChildNode:
-            return cellViewProvider(outlineView, tableColumn, node)
-        default:
-            return nil
         }
-    }
-
-    @objc func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
-        guard let rowViewProvider, let node = item as? ChildNode else { return nil }
-        return rowViewProvider(outlineView, node)
+        return super.outlineView(outlineView, viewFor: tableColumn, item: item)
     }
 
     /// `@objc` is mandatory: `isGroupItem` is an optional `NSOutlineViewDelegate`

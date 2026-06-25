@@ -3,6 +3,30 @@ import RxSwift
 import RxCocoa
 import DifferenceKit
 
+extension NSOutlineView {
+    /// Payload of ``Reactive/proposedSelection()`` — the indexes AppKit is about
+    /// to apply plus the input event that triggered the change (mouse, key, or
+    /// `nil` for changes the system itself originates).
+    public struct ProposedSelection {
+        public let indexes: IndexSet
+        public let triggeringEvent: NSEvent?
+
+        public init(indexes: IndexSet, triggeringEvent: NSEvent?) {
+            self.indexes = indexes
+            self.triggeringEvent = triggeringEvent
+        }
+    }
+}
+
+/// Implemented by outline-view adapters that publish user-initiated selection
+/// changes (`outlineView(_:selectionIndexesForProposedSelection:)`). The
+/// `Reactive` extension reads this subject through the proxy's required-method
+/// delegate, so the subject lives with the adapter (which owns selection
+/// behavior) rather than the proxy (which only forwards delegate calls).
+protocol RxNSOutlineViewProposedSelectionEmitting: AnyObject {
+    var _proposedSelection: PublishSubject<NSOutlineView.ProposedSelection> { get }
+}
+
 extension Reactive where Base: NSOutlineView {
     public typealias OutlineCellViewProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ node: OutlineNode) -> NSView?
 
@@ -326,12 +350,60 @@ extension Reactive where Base: NSOutlineView {
     /// Emits selection changes whose triggering `NSEvent` passes `shouldEmit`.
     /// The window's `currentEvent` is forwarded as-is; `nil` means the selection
     /// was changed programmatically (no input event in flight).
+    @available(*, deprecated, message: "Use userItemSelected() / userModelSelected() — they are backed by selectionIndexesForProposedSelection: which is only invoked for user-driven selection changes, so they do not need an NSEvent filter.")
     public func modelSelectedFilteringCurrentEvent<Item>(
         _ shouldEmit: @escaping (NSEvent?) -> Bool
     ) -> ControlEvent<Item> {
         modelSelected().filter { [weak base] _ in
             shouldEmit(base?.window?.currentEvent)
         }.asControlEvent()
+    }
+
+    // MARK: - User-initiated selection
+
+    /// Proposed selection indexes for user-driven selection changes only —
+    /// mouse, keyboard arrow, and type-select. Programmatic
+    /// `selectRowIndexes(_:byExtendingSelection:)`, `reloadData()` side effects,
+    /// and other internal selection adjustments do NOT emit here. Backed by
+    /// `outlineView(_:selectionIndexesForProposedSelection:)`, which the
+    /// `rx.nodes` / `rx.sections` adapters implement.
+    ///
+    /// `triggeringEvent` is the window's `currentEvent` captured synchronously
+    /// when AppKit invoked the delegate method, so callers can distinguish
+    /// click vs. arrow key vs. type-select.
+    ///
+    /// Requires one of the Rx-installed adapters (everything bound via
+    /// `rx.nodes(...)` or `rx.sections(...)` qualifies). Outline views wired
+    /// up by hand emit nothing.
+    public func proposedSelection() -> ControlEvent<NSOutlineView.ProposedSelection> {
+        let source = Observable<NSOutlineView.ProposedSelection>.deferred { [weak base] in
+            guard let emitter = (base?.delegate as? RxNSOutlineViewDelegateProxy)?._requiredMethodDelegate as? RxNSOutlineViewProposedSelectionEmitting else {
+                return .empty()
+            }
+            return emitter._proposedSelection.asObservable()
+        }
+        return ControlEvent(events: source)
+    }
+
+    /// User-initiated single-row selection. Same source as ``proposedSelection()``;
+    /// for the multi-row case (`allowsMultipleSelection == true`) use
+    /// ``proposedSelection()`` directly.
+    public func userItemSelected() -> ControlEvent<TableIndex> {
+        let source = proposedSelection().compactMap { [weak base] proposed -> TableIndex? in
+            guard let base, let row = proposed.indexes.first else { return nil }
+            return (row, base.selectedColumn)
+        }
+        return ControlEvent(events: source)
+    }
+
+    /// User-initiated selection mapped through `item(atRow:)`. Symmetric with
+    /// ``modelSelected()`` but does NOT fire for programmatic selection.
+    public func userModelSelected<Item>() -> ControlEvent<Item> {
+        let source = userItemSelected().compactMap { [weak base] tableIndex -> Item? in
+            guard let base else { return nil }
+            return base.item(atRow: tableIndex.row) as? Item
+        }
+        return ControlEvent(events: source)
     }
 
     private func _modelForControlEvent<Item>(_ controlEvent: ControlEvent<TableIndex>) -> ControlEvent<Item> {

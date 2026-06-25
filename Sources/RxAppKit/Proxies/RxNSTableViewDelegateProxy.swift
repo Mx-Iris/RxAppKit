@@ -53,4 +53,21 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
         }
         return forwardToDelegate()?.tableView?(tableView, isGroupRow: row) ?? false
     }
+
+    // MARK: - User-initiated selection
+
+    /// Implemented here so AppKit invokes the proxy (whose `responds(to:)`
+    /// reports `true` because of this `@objc` method). The proxy then forwards
+    /// to the adapter, which holds the `PublishSubject` and emits.
+    /// `Reactive.proposedSelection()` reads off that adapter subject.
+    @objc public func tableView(_ tableView: NSTableView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
+        let selector = #selector(NSTableViewDelegate.tableView(_:selectionIndexesForProposedSelection:))
+        if let delegate = _requiredMethodsDelegate.object, delegate.responds(to: selector) {
+            return delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        }
+        if let delegate = forwardToDelegate(), delegate.responds(to: selector) {
+            return delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        }
+        return proposedSelectionIndexes
+    }
 }

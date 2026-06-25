@@ -13,7 +13,7 @@ import RxCocoa
 class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDelegate>, DelegateProxyType, NSOutlineViewDelegate {
     public private(set) weak var outlineView: NSOutlineView?
 
-    private weak var _requiredMethodDelegate: NSOutlineViewDelegate?
+    weak var _requiredMethodDelegate: NSOutlineViewDelegate?
     
     init(outlineView: NSOutlineView) {
         self.outlineView = outlineView
@@ -64,6 +64,23 @@ class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDe
             return delegate.outlineView?(outlineView, isGroupItem: item) ?? false
         }
         return forwardToDelegate()?.outlineView?(outlineView, isGroupItem: item) ?? false
+    }
+
+    // MARK: - User-initiated selection
+
+    /// Implemented here so AppKit invokes the proxy (whose `responds(to:)`
+    /// reports `true` because of this `@objc` method). The proxy then forwards
+    /// to the adapter, which holds the `PublishSubject` and emits.
+    /// `Reactive.proposedSelection()` reads off that adapter subject.
+    @objc func outlineView(_ outlineView: NSOutlineView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
+        let selector = #selector(NSOutlineViewDelegate.outlineView(_:selectionIndexesForProposedSelection:))
+        if let delegate = _requiredMethodDelegate, delegate.responds(to: selector) {
+            return delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        }
+        if let delegate = forwardToDelegate(), delegate.responds(to: selector) {
+            return delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        }
+        return proposedSelectionIndexes
     }
 
     func setRequiredMethodDelegate(_ requiredMethodDelegate: NSOutlineViewDelegate) -> Disposable {

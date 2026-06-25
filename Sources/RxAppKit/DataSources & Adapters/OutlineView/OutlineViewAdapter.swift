@@ -2,7 +2,7 @@ import AppKit
 import RxSwift
 import RxCocoa
 
-open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate {
+open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, RxNSOutlineViewProposedSelectionEmitting {
     public typealias CellViewProvider = (NSOutlineView, NSTableColumn?, OutlineNode) -> NSView?
     public typealias RowViewProvider = (NSOutlineView, OutlineNode) -> NSTableRowView?
 
@@ -12,9 +12,15 @@ open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutline
     public let cellViewProvider: CellViewProvider
     public let rowViewProvider: RowViewProvider?
 
+    let _proposedSelection = PublishSubject<NSOutlineView.ProposedSelection>()
+
     public init(cellViewProvider: @escaping CellViewProvider, rowViewProvider: RowViewProvider?) {
         self.cellViewProvider = cellViewProvider
         self.rowViewProvider = rowViewProvider
+    }
+
+    deinit {
+        _proposedSelection.onCompleted()
     }
 
     // MARK: - Data
@@ -51,5 +57,16 @@ open class OutlineViewAdapter<OutlineNode: OutlineNodeType>: NSObject, NSOutline
         guard let rowViewProvider else { return nil }
         guard let node = item as? OutlineNode else { return nil }
         return rowViewProvider(outlineView, node)
+    }
+
+    // MARK: - User-initiated selection
+
+    /// AppKit invokes this only for user-driven selection changes (mouse,
+    /// keyboard, type-select). Emitting here lets `Reactive.proposedSelection()`
+    /// expose a clean stream without the programmatic-selection noise that
+    /// `selectionDidChangeNotification` carries.
+    open func outlineView(_ outlineView: NSOutlineView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
+        _proposedSelection.onNext(.init(indexes: proposedSelectionIndexes, triggeringEvent: outlineView.window?.currentEvent))
+        return proposedSelectionIndexes
     }
 }
