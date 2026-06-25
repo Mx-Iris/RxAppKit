@@ -14,10 +14,23 @@ class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDe
     public private(set) weak var outlineView: NSOutlineView?
 
     weak var _requiredMethodDelegate: NSOutlineViewDelegate?
-    
+
+    /// Subject lives on the proxy (rather than the data-source adapter) so
+    /// `Reactive.proposedSelection()` can resolve it at subscription time
+    /// regardless of whether `rx.nodes` / `rx.sections` has installed an
+    /// adapter yet. This is the RxCocoa-recommended pattern for delegate
+    /// methods the proxy must implement itself: `methodInvoked(_:)` does NOT
+    /// intercept selectors the proxy already provides an implementation for
+    /// (see DelegateProxy "Delegate proxy is already implementing ..." note).
+    let _proposedSelection = PublishSubject<NSOutlineView.ProposedSelection>()
+
     init(outlineView: NSOutlineView) {
         self.outlineView = outlineView
         super.init(parentObject: outlineView, delegateProxy: RxNSOutlineViewDelegateProxy.self)
+    }
+
+    deinit {
+        _proposedSelection.onCompleted()
     }
 
     static func registerKnownImplementations() {
@@ -69,10 +82,14 @@ class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDe
     // MARK: - User-initiated selection
 
     /// Implemented here so AppKit invokes the proxy (whose `responds(to:)`
-    /// reports `true` because of this `@objc` method). The proxy then forwards
-    /// to the adapter, which holds the `PublishSubject` and emits.
-    /// `Reactive.proposedSelection()` reads off that adapter subject.
+    /// reports `true` because of this `@objc` method). Emission goes to the
+    /// proxy-owned `_proposedSelection` subject first so subscribers can
+    /// observe events regardless of when (or whether) a data-source adapter
+    /// installs itself. Forwarding to `_requiredMethodDelegate` /
+    /// `forwardToDelegate()` is preserved so a downstream delegate can still
+    /// customize the proposed index set, and its return value wins.
     @objc func outlineView(_ outlineView: NSOutlineView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
+        _proposedSelection.onNext(.init(indexes: proposedSelectionIndexes, triggeringEvent: outlineView.window?.currentEvent))
         let selector = #selector(NSOutlineViewDelegate.outlineView(_:selectionIndexesForProposedSelection:))
         if let delegate = _requiredMethodDelegate, delegate.responds(to: selector) {
             return delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes

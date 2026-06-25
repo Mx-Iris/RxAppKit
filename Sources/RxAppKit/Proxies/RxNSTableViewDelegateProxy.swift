@@ -14,11 +14,24 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
         super.init(parentObject: tableView, delegateProxy: RxNSTableViewDelegateProxy.self)
     }
 
+    deinit {
+        _proposedSelection.onCompleted()
+    }
+
     public static func registerKnownImplementations() {
         register { RxNSTableViewDelegateProxy(tableView: $0) }
     }
 
     let _requiredMethodsDelegate: ObjectContainer<NSTableViewDelegate> = .init()
+
+    /// Subject lives on the proxy (rather than the data-source adapter) so
+    /// `Reactive.proposedSelection()` can resolve it at subscription time
+    /// regardless of whether `rx.items` / `rx.sections` has installed an
+    /// adapter yet. This is the RxCocoa-recommended pattern for delegate
+    /// methods the proxy must implement itself: `methodInvoked(_:)` does NOT
+    /// intercept selectors the proxy already provides an implementation for
+    /// (see DelegateProxy "Delegate proxy is already implementing ..." note).
+    let _proposedSelection = PublishSubject<NSTableView.ProposedSelection>()
 
     public func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         _requiredMethodsDelegate.object?.tableView?(tableView, viewFor: tableColumn, row: row)
@@ -57,10 +70,14 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
     // MARK: - User-initiated selection
 
     /// Implemented here so AppKit invokes the proxy (whose `responds(to:)`
-    /// reports `true` because of this `@objc` method). The proxy then forwards
-    /// to the adapter, which holds the `PublishSubject` and emits.
-    /// `Reactive.proposedSelection()` reads off that adapter subject.
+    /// reports `true` because of this `@objc` method). Emission goes to the
+    /// proxy-owned `_proposedSelection` subject first so subscribers can
+    /// observe events regardless of when (or whether) a data-source adapter
+    /// installs itself. Forwarding to `_requiredMethodsDelegate` /
+    /// `forwardToDelegate()` is preserved so a downstream delegate can still
+    /// customize the proposed index set, and its return value wins.
     @objc public func tableView(_ tableView: NSTableView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
+        _proposedSelection.onNext(.init(indexes: proposedSelectionIndexes, triggeringEvent: tableView.window?.currentEvent))
         let selector = #selector(NSTableViewDelegate.tableView(_:selectionIndexesForProposedSelection:))
         if let delegate = _requiredMethodsDelegate.object, delegate.responds(to: selector) {
             return delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes

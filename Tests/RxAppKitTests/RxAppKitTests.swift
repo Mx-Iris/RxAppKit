@@ -244,6 +244,66 @@ final class RxNSOutlineViewAdapterTests {
         adapter.outlineView(outlineView, observedEvent: .next(TestNode("Root2")))
         #expect(rowIDs() == ["Root2"])
     }
+
+    // MARK: - proposedSelection() subscription-order safety
+
+    /// Subscribing to `proposedSelection()` BEFORE the data-source adapter is
+    /// installed must still deliver later events. The previous implementation
+    /// read the subject off the adapter at subscription time, so subscribing
+    /// first returned `.empty()` and the stream was dead forever — exactly the
+    /// trap the sidebar binding falls into (it builds the input pipeline
+    /// before calling `rx.nodes(...)`).
+    @Test func proposedSelectionSurvivesLateAdapterInstallation() {
+        var received: [IndexSet] = []
+        let disposable = outlineView.rx.proposedSelection().subscribe(onNext: { received.append($0.indexes) })
+        defer { disposable.dispose() }
+
+        // Adapter installation happens AFTER the subscription.
+        let disposable2 = outlineView.rx.nodes(source: Observable.just([TestNode("A"), TestNode("B")]))(
+            { _, _, _ in NSTableCellView() }
+        )
+        defer { disposable2.dispose() }
+
+        // Simulate AppKit invoking the delegate method through the installed proxy.
+        let proposed = IndexSet(integer: 1)
+        let returned = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: proposed)
+        #expect(returned == proposed)
+        #expect(received == [proposed])
+    }
+
+    /// Repeated invocations should keep emitting (the subject is not single-shot).
+    @Test func proposedSelectionEmitsForEveryInvocation() {
+        let disposable = outlineView.rx.nodes(source: Observable.just([TestNode("A"), TestNode("B"), TestNode("C")]))(
+            { _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+
+        var received: [IndexSet] = []
+        let subscription = outlineView.rx.proposedSelection().subscribe(onNext: { received.append($0.indexes) })
+        defer { subscription.dispose() }
+
+        _ = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: IndexSet(integer: 0))
+        _ = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: IndexSet(integer: 2))
+        #expect(received == [IndexSet(integer: 0), IndexSet(integer: 2)])
+    }
+
+    /// The proxy's delegate-method implementation must preserve the `IndexSet`
+    /// return value — AppKit uses it to decide which rows actually become
+    /// selected. Emitting to the subject must not clobber the value the
+    /// downstream delegate (or default proxy fallback) returns.
+    @Test func proposedSelectionPreservesReturnValue() {
+        let disposable = outlineView.rx.nodes(source: Observable.just([TestNode("A"), TestNode("B")]))(
+            { _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+
+        let subscription = outlineView.rx.proposedSelection().subscribe()
+        defer { subscription.dispose() }
+
+        let proposed = IndexSet([0, 1])
+        let returned = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: proposed)
+        #expect(returned == proposed)
+    }
 }
 
 private final class MutableNode: OutlineNodeType {

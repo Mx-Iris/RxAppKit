@@ -18,15 +18,6 @@ extension NSOutlineView {
     }
 }
 
-/// Implemented by outline-view adapters that publish user-initiated selection
-/// changes (`outlineView(_:selectionIndexesForProposedSelection:)`). The
-/// `Reactive` extension reads this subject through the proxy's required-method
-/// delegate, so the subject lives with the adapter (which owns selection
-/// behavior) rather than the proxy (which only forwards delegate calls).
-protocol RxNSOutlineViewProposedSelectionEmitting: AnyObject {
-    var _proposedSelection: PublishSubject<NSOutlineView.ProposedSelection> { get }
-}
-
 extension Reactive where Base: NSOutlineView {
     public typealias OutlineCellViewProvider<OutlineNode: OutlineNodeType & Differentiable & Hashable> = (_ outlineView: NSOutlineView, _ tableColumn: NSTableColumn?, _ node: OutlineNode) -> NSView?
 
@@ -365,23 +356,15 @@ extension Reactive where Base: NSOutlineView {
     /// mouse, keyboard arrow, and type-select. Programmatic
     /// `selectRowIndexes(_:byExtendingSelection:)`, `reloadData()` side effects,
     /// and other internal selection adjustments do NOT emit here. Backed by
-    /// `outlineView(_:selectionIndexesForProposedSelection:)`, which the
-    /// `rx.nodes` / `rx.sections` adapters implement.
+    /// `outlineView(_:selectionIndexesForProposedSelection:)`, emitted from a
+    /// `PublishSubject` owned by the delegate proxy so the stream does not
+    /// depend on a data-source adapter being installed at subscription time.
     ///
     /// `triggeringEvent` is the window's `currentEvent` captured synchronously
     /// when AppKit invoked the delegate method, so callers can distinguish
     /// click vs. arrow key vs. type-select.
-    ///
-    /// Requires one of the Rx-installed adapters (everything bound via
-    /// `rx.nodes(...)` or `rx.sections(...)` qualifies). Outline views wired
-    /// up by hand emit nothing.
     public func proposedSelection() -> ControlEvent<NSOutlineView.ProposedSelection> {
-        let source = Observable<NSOutlineView.ProposedSelection>.deferred { [weak base] in
-            guard let emitter = (base?.delegate as? RxNSOutlineViewDelegateProxy)?._requiredMethodDelegate as? RxNSOutlineViewProposedSelectionEmitting else {
-                return .empty()
-            }
-            return emitter._proposedSelection.asObservable()
-        }
+        let source = RxNSOutlineViewDelegateProxy.proxy(for: base)._proposedSelection.asObservable()
         return ControlEvent(events: source)
     }
 
