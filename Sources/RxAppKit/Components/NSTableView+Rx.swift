@@ -6,9 +6,10 @@ import DifferenceKit
 extension NSTableView: HasDoubleAction {}
 
 extension NSTableView {
-    /// Payload of ``Reactive/proposedSelection()`` — the indexes AppKit is about
-    /// to apply plus the input event that triggered the change (mouse, key, or
-    /// `nil` for changes the system itself originates).
+    /// Payload of ``Reactive/proposedSelection()`` — the final indexes AppKit is
+    /// about to apply after delegate and predicate filtering, plus the input
+    /// event that triggered the change (mouse, key, or `nil` for changes the
+    /// system itself originates).
     public struct ProposedSelection {
         public let indexes: IndexSet
         public let triggeringEvent: NSEvent?
@@ -18,6 +19,14 @@ extension NSTableView {
             self.triggeringEvent = triggeringEvent
         }
     }
+
+    /// Synchronous policy used by ``Reactive/shouldSelectRow(_:)`` to decide
+    /// whether a row should remain in a user-driven proposed selection.
+    public typealias RowSelectionPredicate = (
+        _ tableView: NSTableView,
+        _ row: Int,
+        _ proposedSelection: ProposedSelection
+    ) -> Bool
 }
 
 extension Reactive where Base: NSTableView {
@@ -54,6 +63,16 @@ extension Reactive where Base: NSTableView {
 
     public func setDelegate(_ delegate: NSTableViewDelegate) -> Disposable {
         RxNSTableViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
+    }
+
+    /// Installs a synchronous predicate that filters user-driven proposed
+    /// selections before AppKit applies them.
+    ///
+    /// This is the RxAppKit counterpart to `tableView(_:shouldSelectRow:)`,
+    /// implemented through `tableView(_:selectionIndexesForProposedSelection:)`
+    /// so it composes with the delegate proxy.
+    public func shouldSelectRow(_ predicate: @escaping NSTableView.RowSelectionPredicate) -> Disposable {
+        RxNSTableViewDelegateProxy.proxy(for: base).setRowSelectionPredicate(predicate)
     }
 
     public func items<Element: Differentiable, Source: ObservableType>(_ source: Source)

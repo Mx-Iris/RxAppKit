@@ -24,6 +24,8 @@ class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDe
     /// (see DelegateProxy "Delegate proxy is already implementing ..." note).
     let _proposedSelection = PublishSubject<NSOutlineView.ProposedSelection>()
 
+    private var itemSelectionPredicate: NSOutlineView.ItemSelectionPredicate?
+
     init(outlineView: NSOutlineView) {
         self.outlineView = outlineView
         super.init(parentObject: outlineView, delegateProxy: RxNSOutlineViewDelegateProxy.self)
@@ -87,17 +89,28 @@ class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDe
     /// observe events regardless of when (or whether) a data-source adapter
     /// installs itself. Forwarding to `_requiredMethodDelegate` /
     /// `forwardToDelegate()` is preserved so a downstream delegate can still
-    /// customize the proposed index set, and its return value wins.
+    /// customize the proposed index set before the Rx predicate applies its
+    /// final veto.
     @objc func outlineView(_ outlineView: NSOutlineView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
-        _proposedSelection.onNext(.init(indexes: proposedSelectionIndexes, triggeringEvent: outlineView.window?.currentEvent))
+        let triggeringEvent = outlineView.window?.currentEvent
+        let forwardedSelectionIndexes: IndexSet
         let selector = #selector(NSOutlineViewDelegate.outlineView(_:selectionIndexesForProposedSelection:))
         if let delegate = _requiredMethodDelegate, delegate.responds(to: selector) {
-            return delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+            forwardedSelectionIndexes = delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        } else if let delegate = forwardToDelegate(), delegate.responds(to: selector) {
+            forwardedSelectionIndexes = delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        } else {
+            forwardedSelectionIndexes = proposedSelectionIndexes
         }
-        if let delegate = forwardToDelegate(), delegate.responds(to: selector) {
-            return delegate.outlineView?(outlineView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
-        }
-        return proposedSelectionIndexes
+
+        let proposedSelection = NSOutlineView.ProposedSelection(indexes: forwardedSelectionIndexes, triggeringEvent: triggeringEvent)
+        let acceptedSelectionIndexes = filteredSelectionIndexes(
+            from: forwardedSelectionIndexes,
+            in: outlineView,
+            proposedSelection: proposedSelection
+        )
+        _proposedSelection.onNext(.init(indexes: acceptedSelectionIndexes, triggeringEvent: triggeringEvent))
+        return acceptedSelectionIndexes
     }
 
     func setRequiredMethodDelegate(_ requiredMethodDelegate: NSOutlineViewDelegate) -> Disposable {
@@ -106,6 +119,32 @@ class RxNSOutlineViewDelegateProxy: DelegateProxy<NSOutlineView, NSOutlineViewDe
             guard let self = self else { return }
             self._requiredMethodDelegate = nil
         }
+    }
+
+    func setItemSelectionPredicate(_ predicate: @escaping NSOutlineView.ItemSelectionPredicate) -> Disposable {
+        itemSelectionPredicate = predicate
+        return Disposables.create { [weak self] in
+            self?.itemSelectionPredicate = nil
+        }
+    }
+
+    private func filteredSelectionIndexes(
+        from selectionIndexes: IndexSet,
+        in outlineView: NSOutlineView,
+        proposedSelection: NSOutlineView.ProposedSelection
+    ) -> IndexSet {
+        guard let itemSelectionPredicate else { return selectionIndexes }
+
+        var acceptedSelectionIndexes = IndexSet()
+        for rowIndex in selectionIndexes {
+            guard rowIndex >= 0,
+                  rowIndex < outlineView.numberOfRows,
+                  let item = outlineView.item(atRow: rowIndex)
+            else { continue }
+            guard itemSelectionPredicate(outlineView, item, rowIndex, proposedSelection) else { continue }
+            acceptedSelectionIndexes.insert(rowIndex)
+        }
+        return acceptedSelectionIndexes
     }
     
 }

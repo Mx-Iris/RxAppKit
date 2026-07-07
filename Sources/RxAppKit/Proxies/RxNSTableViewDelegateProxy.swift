@@ -33,6 +33,8 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
     /// (see DelegateProxy "Delegate proxy is already implementing ..." note).
     let _proposedSelection = PublishSubject<NSTableView.ProposedSelection>()
 
+    private var rowSelectionPredicate: NSTableView.RowSelectionPredicate?
+
     public func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         _requiredMethodsDelegate.object?.tableView?(tableView, viewFor: tableColumn, row: row)
     }
@@ -75,16 +77,50 @@ class RxNSTableViewDelegateProxy: DelegateProxy<NSTableView, NSTableViewDelegate
     /// observe events regardless of when (or whether) a data-source adapter
     /// installs itself. Forwarding to `_requiredMethodsDelegate` /
     /// `forwardToDelegate()` is preserved so a downstream delegate can still
-    /// customize the proposed index set, and its return value wins.
+    /// customize the proposed index set before the Rx predicate applies its
+    /// final veto.
     @objc public func tableView(_ tableView: NSTableView, selectionIndexesForProposedSelection proposedSelectionIndexes: IndexSet) -> IndexSet {
-        _proposedSelection.onNext(.init(indexes: proposedSelectionIndexes, triggeringEvent: tableView.window?.currentEvent))
+        let triggeringEvent = tableView.window?.currentEvent
+        let forwardedSelectionIndexes: IndexSet
         let selector = #selector(NSTableViewDelegate.tableView(_:selectionIndexesForProposedSelection:))
         if let delegate = _requiredMethodsDelegate.object, delegate.responds(to: selector) {
-            return delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+            forwardedSelectionIndexes = delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        } else if let delegate = forwardToDelegate(), delegate.responds(to: selector) {
+            forwardedSelectionIndexes = delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+        } else {
+            forwardedSelectionIndexes = proposedSelectionIndexes
         }
-        if let delegate = forwardToDelegate(), delegate.responds(to: selector) {
-            return delegate.tableView?(tableView, selectionIndexesForProposedSelection: proposedSelectionIndexes) ?? proposedSelectionIndexes
+
+        let proposedSelection = NSTableView.ProposedSelection(indexes: forwardedSelectionIndexes, triggeringEvent: triggeringEvent)
+        let acceptedSelectionIndexes = filteredSelectionIndexes(
+            from: forwardedSelectionIndexes,
+            in: tableView,
+            proposedSelection: proposedSelection
+        )
+        _proposedSelection.onNext(.init(indexes: acceptedSelectionIndexes, triggeringEvent: triggeringEvent))
+        return acceptedSelectionIndexes
+    }
+
+    func setRowSelectionPredicate(_ predicate: @escaping NSTableView.RowSelectionPredicate) -> Disposable {
+        rowSelectionPredicate = predicate
+        return Disposables.create { [weak self] in
+            self?.rowSelectionPredicate = nil
         }
-        return proposedSelectionIndexes
+    }
+
+    private func filteredSelectionIndexes(
+        from selectionIndexes: IndexSet,
+        in tableView: NSTableView,
+        proposedSelection: NSTableView.ProposedSelection
+    ) -> IndexSet {
+        guard let rowSelectionPredicate else { return selectionIndexes }
+
+        var acceptedSelectionIndexes = IndexSet()
+        for rowIndex in selectionIndexes {
+            guard rowIndex >= 0, rowIndex < tableView.numberOfRows else { continue }
+            guard rowSelectionPredicate(tableView, rowIndex, proposedSelection) else { continue }
+            acceptedSelectionIndexes.insert(rowIndex)
+        }
+        return acceptedSelectionIndexes
     }
 }

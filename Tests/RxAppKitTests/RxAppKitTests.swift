@@ -304,6 +304,28 @@ final class RxNSOutlineViewAdapterTests {
         let returned = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: proposed)
         #expect(returned == proposed)
     }
+
+    @Test func shouldSelectItemFiltersReturnedAndEmittedSelectionIndexes() {
+        let disposable = outlineView.rx.nodes(source: Observable.just([TestNode("A"), TestNode("B"), TestNode("C")]))(
+            { _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+
+        let predicateDisposable = outlineView.rx.shouldSelectItem { _, item, _, _ in
+            (item as? TestNode)?.id != "B"
+        }
+        defer { predicateDisposable.dispose() }
+
+        var received: [IndexSet] = []
+        let subscription = outlineView.rx.proposedSelection().subscribe(onNext: { received.append($0.indexes) })
+        defer { subscription.dispose() }
+
+        let proposed = IndexSet([0, 1, 2])
+        let returned = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: proposed)
+        let expected = IndexSet([0, 2])
+        #expect(returned == expected)
+        #expect(received == [expected])
+    }
 }
 
 private final class MutableNode: OutlineNodeType {
@@ -853,6 +875,29 @@ final class RxNSTableViewSectionedReloadAdapterTests {
         #expect(delegate?.tableView?(tableView, isGroupRow: 0) == true)
         #expect(delegate?.tableView?(tableView, isGroupRow: 1) == false)
     }
+
+    @Test func shouldSelectRowFiltersReturnedAndEmittedSelectionIndexes() {
+        let disposable = tableView.rx.sections(Observable.just([section("S1", ["a", "b"])]))(
+            { _, _, _ in NSTableCellView() },
+            { _, _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+
+        let predicateDisposable = tableView.rx.shouldSelectRow { _, rowIndex, _ in
+            rowIndex != 0
+        }
+        defer { predicateDisposable.dispose() }
+
+        var received: [IndexSet] = []
+        let subscription = tableView.rx.proposedSelection().subscribe(onNext: { received.append($0.indexes) })
+        defer { subscription.dispose() }
+
+        let proposed = IndexSet([0, 1, 2])
+        let returned = tableView.delegate?.tableView?(tableView, selectionIndexesForProposedSelection: proposed)
+        let expected = IndexSet([1, 2])
+        #expect(returned == expected)
+        #expect(received == [expected])
+    }
 }
 
 @MainActor
@@ -944,5 +989,28 @@ final class RxNSOutlineViewSectionedAdapterTests {
         let delegate = outlineView.delegate
         #expect(delegate?.responds(to: #selector(NSOutlineViewDelegate.outlineView(_:isGroupItem:))) == true)
         #expect(delegate?.outlineView?(outlineView, isGroupItem: outlineView.item(atRow: 0) as Any) == true)
+    }
+
+    @Test func shouldSelectItemCanRejectSectionHeaderRows() {
+        let disposable = outlineView.rx.sections(source: Observable.just([section("S1", [TestNode("a")])]))(
+            { _, _, _ in NSTableCellView() },
+            { _, _, _ in NSTableCellView() }
+        )
+        defer { disposable.dispose() }
+
+        let predicateDisposable = outlineView.rx.shouldSelectItem { _, item, _, _ in
+            !(item is SectionHeaderModel)
+        }
+        defer { predicateDisposable.dispose() }
+
+        var received: [IndexSet] = []
+        let subscription = outlineView.rx.proposedSelection().subscribe(onNext: { received.append($0.indexes) })
+        defer { subscription.dispose() }
+
+        let proposed = IndexSet([0, 1])
+        let returned = outlineView.delegate?.outlineView?(outlineView, selectionIndexesForProposedSelection: proposed)
+        let expected = IndexSet(integer: 1)
+        #expect(returned == expected)
+        #expect(received == [expected])
     }
 }

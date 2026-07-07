@@ -4,9 +4,10 @@ import RxCocoa
 import DifferenceKit
 
 extension NSOutlineView {
-    /// Payload of ``Reactive/proposedSelection()`` — the indexes AppKit is about
-    /// to apply plus the input event that triggered the change (mouse, key, or
-    /// `nil` for changes the system itself originates).
+    /// Payload of ``Reactive/proposedSelection()`` — the final indexes AppKit is
+    /// about to apply after delegate and predicate filtering, plus the input
+    /// event that triggered the change (mouse, key, or `nil` for changes the
+    /// system itself originates).
     public struct ProposedSelection {
         public let indexes: IndexSet
         public let triggeringEvent: NSEvent?
@@ -16,6 +17,15 @@ extension NSOutlineView {
             self.triggeringEvent = triggeringEvent
         }
     }
+
+    /// Synchronous policy used by ``Reactive/shouldSelectItem(_:)`` to decide
+    /// whether an item should remain in a user-driven proposed selection.
+    public typealias ItemSelectionPredicate = (
+        _ outlineView: NSOutlineView,
+        _ item: Any,
+        _ row: Int,
+        _ proposedSelection: ProposedSelection
+    ) -> Bool
 }
 
 extension Reactive where Base: NSOutlineView {
@@ -45,6 +55,17 @@ extension Reactive where Base: NSOutlineView {
 
     public func setDelegate(_ delegate: NSOutlineViewDelegate) -> Disposable {
         RxNSOutlineViewDelegateProxy.installForwardDelegate(delegate, retainDelegate: false, onProxyForObject: base)
+    }
+
+    /// Installs a synchronous predicate that filters user-driven proposed
+    /// selections before AppKit applies them.
+    ///
+    /// This is the RxAppKit counterpart to
+    /// `outlineView(_:shouldSelectItem:)`, implemented through
+    /// `outlineView(_:selectionIndexesForProposedSelection:)` so it composes
+    /// with the delegate proxy.
+    public func shouldSelectItem(_ predicate: @escaping NSOutlineView.ItemSelectionPredicate) -> Disposable {
+        RxNSOutlineViewDelegateProxy.proxy(for: base).setItemSelectionPredicate(predicate)
     }
 
     // MARK: - rootNode
