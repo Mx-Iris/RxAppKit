@@ -36,7 +36,13 @@ open class ReorderableTableViewAdapter<T>: TableViewAdapter<T>, RxNSTableViewReo
         NSPasteboard.PasteboardType("com.RxAppKit.ReorderableTableViewAdapter.reorder")
     }
 
-    private var draggingRowIndexes: IndexSet = []
+    /// Rows captured when a drag session begins.
+    ///
+    /// `internal` rather than `private` so tests can stage a drag directly. The only
+    /// production writer is `draggingSession:willBeginAt:forRowIndexes:`, which needs
+    /// a live `NSDraggingSession` — a class AppKit offers no way to construct, which
+    /// would otherwise leave `acceptDrop` untestable.
+    var draggingRowIndexes: IndexSet = []
     private var isReorderingRegistered = false
     private var itemsOverride: [T]?
 

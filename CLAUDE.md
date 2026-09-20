@@ -29,10 +29,9 @@ swift test --traits AppKitPlus 2>&1 | xcsift; echo "swift test exit=${pipestatus
 xcodebuild -workspace RxAppKit.xcworkspace -scheme RxAppKit -configuration Debug build 2>&1 | xcsift
 ```
 
-Four tests fail on `main` and have done so since before the AppKitPlus trait landed —
-`rootNodeAdapterSubtreeUpdate`, `subtreeAddChildPropagates`, `subtreeRemoveChildPropagates`,
-`topLevelItemsAreSectionGroupItems`, all in the outline view adapters. A clean run is
-**41 tests / 7 issues**; anything else means your change did it.
+A clean run is **106 tests, 0 issues, exit code 0**, with or without the trait. The suite was
+red from May to September 2026 (a regression plus one test that never matched its
+implementation); if it goes red again, it is your change.
 
 ## AppKitPlus Trait
 
@@ -90,6 +89,15 @@ Background and the measurements behind each point:
 **Delegate Proxy Pattern**: Each AppKit delegate/data source has a corresponding `DelegateProxy` subclass in `Proxies/`. These intercept native delegate calls and expose them as Rx observables while supporting `RequiredMethodDelegateProxyType` to handle required delegate methods via `_requiredMethodsDelegate` container.
 
 **Data Source Adapter Pattern**: Adapters in `DataSources & Adapters/` serve as both `NSTableViewDataSource` and `NSTableViewDelegate` (or equivalent). They hold the items array and a `cellProvider` closure. Rx-specific wrappers (e.g. `RxNSTableViewArrayReloadAdapter`, `RxNSTableViewArrayAnimatedAdapter`) subscribe to Observable sequences and use DifferenceKit's `StagedChangeset` for efficient diffing updates.
+
+**Never ask `==` whether the model changed.** Node and item types here implement `Equatable` on
+identity alone — `NSOutlineView` only keeps a row expanded across an update when the new item is
+`==` to the old one, so that is the required shape, not a shortcut. It means `==` and
+`Differentiable.isContentEqual` deliberately disagree: two structurally different trees with the
+same ids are `==`. Any "has anything changed?" check must therefore go through the diffing
+semantics (`StagedChangeset` being empty, or `differenceIdentifier` plus `isContentEqual`), never
+through `==`. A short-circuit that got this wrong silently swallowed every content-only update —
+subtree adds and removes simply did nothing — for four commits before the tests were read.
 
 **ISA-Swizzling** (`Common/ObjC+RuntimeSubclassing.swift`): Creates runtime subclasses for individual objects to intercept methods — technique borrowed from ReactiveCocoa.
 
