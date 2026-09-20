@@ -45,6 +45,23 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
         super.setupReordering(for: outlineView)
     }
 
+    /// Whether two model snapshots are indistinguishable to the diffing engine.
+    ///
+    /// Deliberately not `oldNodes == newNodes`. `Equatable` and `Differentiable` are
+    /// two different relations here, and a node type is *expected* to make them
+    /// disagree: `NSOutlineView` keeps a row expanded across an update only when the
+    /// new item is `==` to the old one, so node types implement `==` on identity
+    /// alone. Asking `==` whether anything changed therefore reports two
+    /// structurally different trees as equal, and every content-only update —
+    /// a child added to or removed from a subtree — is silently swallowed.
+    private func isUnchanged(from oldNodes: [OutlineNode], to newNodes: [OutlineNode]) -> Bool {
+        oldNodes.count == newNodes.count
+            && zip(oldNodes, newNodes).allSatisfy { oldNode, newNode in
+                oldNode.differenceIdentifier == newNode.differenceIdentifier
+                    && newNode.isContentEqual(to: oldNode)
+            }
+    }
+
     /// Shared update path used by every concrete Rx outline adapter.
     /// `oldArray` / `newArray` are the array-form view of the model so the
     /// diff engine can be uniform; `commit` is the subclass's sink that
@@ -65,8 +82,8 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
             // Reload: a drop is already committed in `acceptDrop` via reloadData.
             // An upstream emission just replaces the data and reloads, resetting
             // any drag override so it no longer shadows the new data.
-            guard oldArray != newArray else {
-                _RxAppKitDebugLog("performUpdate (reload) SKIP: oldArray==newArray")
+            guard !isUnchanged(from: oldArray, to: newArray) else {
+                _RxAppKitDebugLog("performUpdate (reload) SKIP: no diffable change")
                 return
             }
             _RxAppKitDebugLog("performUpdate (reload): resetReorderingState + reloadData()")
@@ -84,11 +101,6 @@ open class RxNSOutlineViewAdapterBase<OutlineNode: OutlineNodeType & Hashable & 
                 commit(newArray)
                 self.applyDragMove(pending, to: outlineView)
                 _RxAppKitDebugLog("applyUpdate (drag path) END: outlineView.rows=\(outlineView.numberOfRows)")
-                return
-            }
-
-            guard oldArray != newArray else {
-                _RxAppKitDebugLog("applyUpdate SKIP: oldArray==newArray")
                 return
             }
 

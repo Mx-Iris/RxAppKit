@@ -181,6 +181,25 @@ final class RxNSOutlineViewAdapterTests {
         #expect(rowIDs() == ["Parent", "A"])
     }
 
+    /// The reload path (`options: []`) has the same obligation as the diffable path:
+    /// an emission whose nodes carry a changed subtree must reach the outline view.
+    /// It cannot decide "nothing changed" with `==`, because a node type whose
+    /// `==` is identity-based — which is what `NSOutlineView` needs to preserve
+    /// expansion state — reports two structurally different trees as equal.
+    @Test func reloadModeSurfacesSubtreeChanges() {
+        let adapter = makeArrayAdapter(options: [])
+        adapter.outlineView(outlineView, observedEvent: .next([
+            TestNode("Parent", children: [TestNode("A")]),
+        ]))
+        outlineView.expandItem(TestNode("Parent"))
+        #expect(rowIDs() == ["Parent", "A"])
+
+        adapter.outlineView(outlineView, observedEvent: .next([
+            TestNode("Parent", children: [TestNode("A"), TestNode("B")]),
+        ]))
+        #expect(rowIDs() == ["Parent", "A", "B"])
+    }
+
     // MARK: - Threshold fallback
 
     @Test func thresholdFallbackKeepsCorrectFinalState() {
@@ -950,11 +969,28 @@ final class RxNSOutlineViewSectionedAdapterTests {
             section("S1", [TestNode("a"), TestNode("b")]),
             section("S2", [TestNode("c")]),
         ]))
-        // Two collapsed sections at the root.
-        #expect(outlineView.numberOfRows == 2)
-        for row in 0..<outlineView.numberOfRows {
-            #expect(adapter.outlineView(outlineView, isGroupItem: outlineView.item(atRow: row) as Any) == true)
+        // Sections are expanded on reload, so the rows are S1, a, b, S2, c --
+        // headers at 0 and 3, elements everywhere else.
+        #expect(outlineView.numberOfRows == 5)
+        let groupItemRows = (0 ..< outlineView.numberOfRows).filter {
+            adapter.outlineView(outlineView, isGroupItem: outlineView.item(atRow: $0) as Any)
         }
+        #expect(groupItemRows == [0, 3])
+    }
+
+    /// Sections are containers rather than content, so the adapter expands every one
+    /// of them after a reload. Pinned on its own because the two tests below call
+    /// `expandItem` themselves and would pass either way.
+    @Test func sectionsAreExpandedAfterReload() throws {
+        let adapter = makeAdapter()
+        adapter.outlineView(outlineView, observedEvent: .next([
+            section("S1", [TestNode("a")]),
+            section("S2", [TestNode("b")]),
+        ]))
+        let firstHeader = try #require(outlineView.item(atRow: 0))
+        let secondHeader = try #require(outlineView.item(atRow: 2))
+        #expect(outlineView.isItemExpanded(firstHeader))
+        #expect(outlineView.isItemExpanded(secondHeader))
     }
 
     @Test func expandingSectionRevealsChildNodes() {
