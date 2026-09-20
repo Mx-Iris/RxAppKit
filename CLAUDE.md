@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RxAppKit is a Swift Package that provides RxSwift reactive extensions for macOS AppKit controls. It fills the gap left by RxCocoa, which has rich iOS bindings but minimal macOS support. The library covers 40+ AppKit controls with `.rx` extensions, data source adapters, and delegate proxies.
 
-- **Platforms**: macOS 10.13+
-- **Swift**: 5.7+
-- **Dependencies**: RxSwift/RxCocoa 6.6.0+, DifferenceKit 1.3.0+
+- **Platforms**: macOS 12+ (the floor is AppKitPlus's — see the **AppKitPlus Trait** section)
+- **Swift**: toolchain 6.2+, built in Swift 5 language mode (`swiftLanguageModes: [.v5]`)
+- **Dependencies**: RxSwift/RxCocoa 6.6.0+, DifferenceKit 1.3.0+; AppKitPlus 0.4.2+ (optional, behind a default-off trait)
 
 ## Build & Test Commands
 
@@ -16,12 +16,57 @@ RxAppKit is a Swift Package that provides RxSwift reactive extensions for macOS 
 # Build
 swift build 2>&1 | xcsift
 
-# Test
-swift test 2>&1 | xcsift
+# Build with the optional AppKitPlus trait on
+swift build --traits AppKitPlus 2>&1 | xcsift
+
+# Test. The verdict comes from swift test's own exit code, never from xcsift's summary:
+# xcsift always exits 0 and can report a failing test as passing. zsh: ${pipestatus[1]},
+# bash: ${PIPESTATUS[0]}.
+swift test 2>&1 | xcsift; echo "swift test exit=${pipestatus[1]}"
+swift test --traits AppKitPlus 2>&1 | xcsift; echo "swift test exit=${pipestatus[1]}"
 
 # Build with Xcode (workspace includes example projects)
 xcodebuild -workspace RxAppKit.xcworkspace -scheme RxAppKit -configuration Debug build 2>&1 | xcsift
 ```
+
+Four tests fail on `main` and have done so since before the AppKitPlus trait landed —
+`rootNodeAdapterSubtreeUpdate`, `subtreeAddChildPropagates`, `subtreeRemoveChildPropagates`,
+`topLevelItemsAreSectionGroupItems`, all in the outline view adapters. A clean run is
+**41 tests / 7 issues**; anything else means your change did it.
+
+## AppKitPlus Trait
+
+`AppKitPlus` is an optional SPM trait, **off by default**. It links
+[AppKitPlus](https://github.com/AppKitSupportProgram/AppKitPlus-Release) — a binary framework that
+ports modern UIKit API shapes (content configurations, diffable data sources, cell registration,
+trait collections, block animation) onto AppKit.
+
+**Nothing in RxAppKit uses it yet.** The trait is a conduit for `.rx` bindings still to come. Its
+only source-level presence is `Sources/RxAppKit/Common/AppKitPlus.swift`, which imports the module
+so upstream name collisions fail *this* build rather than a consumer's, and which exposes
+`RxAppKitTraits.isAppKitPlusEnabled`. AppKitPlus is deliberately **not** re-exported.
+
+Three parts to the contract:
+
+- **The package's macOS floor is AppKitPlus's, not RxAppKit's.** AppKitPlus ships as a
+  `binaryTarget` requiring macOS 12, and SwiftPM checks that on the package graph — before any
+  source is compiled, and regardless of `@available` or `#if`. Keeping the floor at 10.13 builds
+  fine with the trait off but fails the moment anyone turns it on, with an error naming *this*
+  package's manifest, which a consumer cannot edit. Hence macOS 12 unconditionally.
+- **Trait off costs nothing.** SwiftPM neither clones the repository nor downloads the
+  xcframework. `Package.resolved` must not contain `appkitplus-release` — if it does, a
+  trait-on build wrote it; revert that file before committing.
+- **Every AppKitPlus version bump needs a name-collision recheck.** Upstream promises no API or
+  ABI stability and adds categories to `NSTableView`, `NSOutlineView`, `NSCollectionView`,
+  `NSControl`, `NSButton`, `NSMenuItem`, `NSToolbarItem`, `NSWindow`, `NSEvent`, `NSCell`,
+  `NSView` and `NSViewController`. A category member whose name matches a property declared by a
+  *subclass* is an illegal override in Swift rather than a shadowing: it fails the build, and the
+  constraint propagates to downstream modules that never import AppKitPlus. This library has zero
+  collisions as of 0.4.2 — the version constraint is `from:`, so re-run
+  `swift build --traits AppKitPlus` after every bump to keep that true.
+
+Background and the measurements behind each point:
+`Documentations/Evolutions/0001-appkitplus-trait.md`.
 
 ## Architecture
 

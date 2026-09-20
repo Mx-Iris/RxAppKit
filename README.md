@@ -5,6 +5,30 @@ RxCocoa provides many convenient bindings and observables for iOS, but few for m
 
 The framework aims to provide rich extensions to RxSwift for macOS. The project is experimental and the API is subject to change.
 
+## Requirements
+
+- macOS 12+
+- Swift 6.2 toolchain (the package itself builds in Swift 5 language mode)
+
+## Optional: the `AppKitPlus` trait
+
+RxAppKit declares one SPM trait, `AppKitPlus`, and it is **off by default**. Turning it on links
+[AppKitPlus](https://github.com/AppKitSupportProgram/AppKitPlus-Release), a binary framework that ports
+modern UIKit API shapes — content configurations, diffable data sources, cell registration, trait
+collections, block animation — onto AppKit.
+
+```swift
+.package(url: "https://github.com/Mx-Iris/RxAppKit", from: "0.6.0", traits: ["AppKitPlus"])
+```
+
+No RxAppKit API depends on it yet: the trait is the conduit for `.rx` bindings still to come, and today
+only exposes `RxAppKitTraits.isAppKitPlusEnabled` so a call site can tell which build it got. AppKitPlus
+is not re-exported — to call its API, depend on it directly.
+
+With the trait off, SwiftPM neither clones the repository nor downloads the framework. The macOS 12
+requirement applies either way: that floor is AppKitPlus's, and SwiftPM enforces it on the package graph
+rather than at compile time.
+
 ## Claude Code Skill
 
 This repo ships a [Claude Code](https://docs.claude.com/en/docs/claude-code) skill — `rxappkit-bindings` — that teaches the agent how to use RxAppKit idiomatically so it stops reaching for `PublishRelay` + `@objc` plumbing or hand-rolling `NSTableViewDataSource` / `NSOutlineViewDataSource` / `NSCollectionViewDataSource` / `NSBrowserDelegate` for data that already lives in an Rx stream.
