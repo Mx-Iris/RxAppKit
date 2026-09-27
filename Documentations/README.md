@@ -16,3 +16,4 @@
 | 文档 | 摘要 |
 |------|------|
 | [Evolutions/0001-appkitplus-trait.md](Evolutions/0001-appkitplus-trait.md) | 以默认关闭的 SPM trait 接入 AppKitPlus 可选依赖；连带抬升 macOS 与工具链下限 |
+| [Evolutions/0002-codex-plugin.md](Evolutions/0002-codex-plugin.md) | `rxappkit-bindings` 插件补上 Codex 清单，skill 只在本仓库维护；两份清单共用一个版本号 |

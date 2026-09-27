@@ -29,9 +29,9 @@ With the trait off, SwiftPM neither clones the repository nor downloads the fram
 requirement applies either way: that floor is AppKitPlus's, and SwiftPM enforces it on the package graph
 rather than at compile time.
 
-## Claude Code Skill
+## Agent Skill (Claude Code and Codex)
 
-This repo ships a [Claude Code](https://docs.claude.com/en/docs/claude-code) skill — `rxappkit-bindings` — that teaches the agent how to use RxAppKit idiomatically so it stops reaching for `PublishRelay` + `@objc` plumbing or hand-rolling `NSTableViewDataSource` / `NSOutlineViewDataSource` / `NSCollectionViewDataSource` / `NSBrowserDelegate` for data that already lives in an Rx stream.
+This repo ships an agent skill — `rxappkit-bindings`, installable as a plugin in [Claude Code](https://docs.claude.com/en/docs/claude-code) and Codex — that teaches the agent how to use RxAppKit idiomatically so it stops reaching for `PublishRelay` + `@objc` plumbing or hand-rolling `NSTableViewDataSource` / `NSOutlineViewDataSource` / `NSCollectionViewDataSource` / `NSBrowserDelegate` for data that already lives in an Rx stream.
 
 It also surfaces the most easily missed feature: `Reactive` is `@dynamicMemberLookup`, and RxAppKit's `HasTargeAction` extension exposes **every** writable property on `NSControl` / `NSMenuItem` / `NSToolbarItem` / `NSGestureRecognizer` / `NSColorPanel` as a `ControlProperty` automatically.
 
@@ -44,7 +44,7 @@ In any Claude Code session run:
 /plugin install rxappkit-bindings@rxappkit
 ```
 
-The first command registers this repo as a marketplace named `rxappkit` (defined by [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)); the second installs the `rxappkit-bindings` plugin and makes the skill globally available across all your projects. Updates: `/plugin marketplace update rxappkit`.
+The first command registers this repo as a marketplace named `rxappkit` (defined by [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)); the second installs the `rxappkit-bindings` plugin and makes the skill globally available across all your projects. An installed plugin picks up a new version of the skill when the plugin's `version` changes: `claude plugin marketplace update rxappkit`, then `claude plugin update rxappkit-bindings@rxappkit`.
 
 To auto-register the marketplace for a whole team, drop this into a project's `.claude/settings.json`:
 
@@ -57,6 +57,15 @@ To auto-register the marketplace for a whole team, drop this into a project's `.
   }
 }
 ```
+
+### Install in Codex
+
+```bash
+codex plugin marketplace add Mx-Iris/RxAppKit
+codex plugin add rxappkit-bindings@rxappkit
+```
+
+Codex reads the marketplace from [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json), which points at the same plugin directory. Updates: `codex plugin marketplace upgrade rxappkit`.
 
 ### Project-local (automatic when working inside this repo)
 

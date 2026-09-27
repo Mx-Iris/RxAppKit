@@ -113,3 +113,20 @@ subtree adds and removes simply did nothing — for four commits before the test
 ### Tree Data (OutlineView)
 
 `OutlineNodeType` protocol defines the tree interface (`parent`, `children`). `MutableOutlineNodeType` adds mutability. `OutlineViewAdapter` and `RxNSOutlineViewAdapter` handle the mapping from flat observable data to hierarchical NSOutlineView data source.
+
+## Agent Plugin
+
+`plugins/rxappkit-bindings/` is the plugin users install into Claude Code and Codex; its
+`skills/rxappkit-bindings/SKILL.md` is the only copy anywhere (`.claude/skills/rxappkit-bindings`
+is a symlink to it), so a stale skill stays stale for everyone.
+
+- **A change to how bindings should be written updates the skill in the same commit** — a new
+  or renamed `rx.` member, a new adapter, a new antipattern worth warning about.
+- **A skill change bumps `version` in both `.claude-plugin/plugin.json` and
+  `.codex-plugin/plugin.json`, to the same value.** Both tools update an installed plugin only
+  when that version changes; an unbumped edit never reaches anyone who already installed it.
+- The two marketplace files are `.claude-plugin/marketplace.json` (Claude Code) and
+  `.agents/plugins/marketplace.json` (Codex); both point at the same plugin directory.
+  Validate with `claude plugin validate .claude-plugin/marketplace.json --strict` and, for
+  Codex, the `validate_plugin.py` of its `plugin-creator` skill. Background:
+  `Documentations/Evolutions/0002-codex-plugin.md`.

@@ -30,3 +30,4 @@ RxAppKit 的每一次实质性改动都留下一份提案，覆盖从调研到�
 | # | 标题 | 状态 |
 |---|------|------|
 | 0001 | [AppKitPlus：以默认关闭的 SPM trait 接入可选依赖](0001-appkitplus-trait.md) | Implemented |
+| 0002 | [`rxappkit-bindings` 插件同时支持 Codex，skill 只在本仓库维护](0002-codex-plugin.md) | Implemented |
