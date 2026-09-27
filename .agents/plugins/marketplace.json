@@ -1,0 +1,20 @@
+{
+  "name": "rxappkit",
+  "interface": {
+    "displayName": "RxAppKit"
+  },
+  "plugins": [
+    {
+      "name": "rxappkit-bindings",
+      "source": {
+        "source": "local",
+        "path": "./plugins/rxappkit-bindings"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

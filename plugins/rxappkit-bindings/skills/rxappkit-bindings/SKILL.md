@@ -1,6 +1,6 @@
 ---
 name: rxappkit-bindings
-description: Use when writing or reviewing AppKit UI bound with RxSwift through RxAppKit — connecting NSButton/NSControl actions, binding NSOutlineView/NSTableView/NSCollectionView data sources, or driving view visibility (isHidden) and other state from Rx streams. Triggers especially when about to declare `PublishRelay<Void>()` + `@objc` action wiring, or hand-roll an `NSOutlineViewDataSource` / `NSOutlineViewDelegate` for data already produced by an Rx pipeline.
+description: Use when writing or reviewing AppKit UI bound with RxSwift via RxAppKit — NSButton and NSControl actions, NSOutlineView/NSTableView/NSCollectionView data sources, driving isHidden and state from Rx streams — and before hand-rolling PublishRelay with @objc actions, or an NSOutlineViewDataSource for Rx-produced data.
 ---
 
 # RxAppKit Bindings

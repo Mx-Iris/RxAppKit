@@ -1,6 +1,11 @@
 {
   "name": "rxappkit-bindings",
+  "version": "1.0.0",
   "description": "RxAppKit binding conventions for Claude Code. Stops the PublishRelay+@objc antipattern, the hand-rolled NSXxxDataSource antipattern, and surfaces the @dynamicMemberLookup synthesis on every HasTargeAction conformer (NSControl, NSMenuItem, NSToolbarItem, NSGestureRecognizer, NSColorPanel).",
+  "author": {
+    "name": "Mx-Iris",
+    "url": "https://github.com/Mx-Iris"
+  },
   "homepage": "https://github.com/Mx-Iris/RxAppKit",
   "repository": "https://github.com/Mx-Iris/RxAppKit",
   "license": "MIT"

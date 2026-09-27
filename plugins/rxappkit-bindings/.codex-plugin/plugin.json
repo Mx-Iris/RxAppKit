@@ -1,0 +1,28 @@
+{
+  "name": "rxappkit-bindings",
+  "version": "1.0.0",
+  "description": "RxAppKit binding conventions for coding agents. Stops the PublishRelay+@objc antipattern, the hand-rolled NSXxxDataSource antipattern, and surfaces the @dynamicMemberLookup synthesis on every HasTargeAction conformer (NSControl, NSMenuItem, NSToolbarItem, NSGestureRecognizer, NSColorPanel).",
+  "author": {
+    "name": "Mx-Iris",
+    "url": "https://github.com/Mx-Iris"
+  },
+  "homepage": "https://github.com/Mx-Iris/RxAppKit",
+  "repository": "https://github.com/Mx-Iris/RxAppKit",
+  "license": "MIT",
+  "keywords": ["rxswift", "appkit", "macos", "reactive", "bindings"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "RxAppKit Bindings",
+    "shortDescription": "Idiomatic RxSwift bindings for AppKit",
+    "longDescription": "Teaches the canonical RxAppKit binding patterns: rx.click, rx.<property>, rx.nodes and rx.items instead of PublishRelay plus @objc plumbing or hand-rolled NSTableViewDataSource / NSOutlineViewDataSource / NSCollectionViewDataSource / NSBrowserDelegate, and the @dynamicMemberLookup properties every HasTargeAction conformer gets for free.",
+    "developerName": "Mx-Iris",
+    "category": "Developer Tools",
+    "capabilities": ["Read"],
+    "websiteURL": "https://github.com/Mx-Iris/RxAppKit",
+    "defaultPrompt": [
+      "Bind this NSOutlineView to an Rx stream",
+      "Replace this PublishRelay and @objc action",
+      "Drive this view's isHidden from an observable"
+    ]
+  }
+}
